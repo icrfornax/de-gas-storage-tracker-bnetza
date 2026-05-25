@@ -11,29 +11,29 @@ Umsetzung: Google Gemini / OpenAI Codex und Github Actions
 Stand aus `data/projections.csv`, letzter Lauf:
 
 ```text
-Projektion #Gasspeicher DE vom 2026-05-24
-Fuellstand 28.86% am 2026-05-22
+Projektion #Gasspeicher DE vom 2026-05-25
+Fuellstand 29.33% am 2026-05-23
 Kritisches Minimum 20% (Entnahmerate bricht stark ein)
 
 Szenarien - Minimum wird erreicht am:
 
 nicht erreicht (nicht-negative Rate)
 Optimistisch (20% weniger Entnahme)
-(0.492%/Tag)
+(0.564%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Kleinste Entnahme
-(0.41%/Tag)
+(0.47%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Durchschnittliche Entnahme
-(0.167333%/Tag)
+(0.181667%/Tag)
 
-2026-11-15
+2026-11-25
 Groesste Entnahme
 (-0.05%/Tag)
 
-2026-10-16
+2026-10-25
 Pessimistisch (20% mehr Entnahme)
 (-0.06%/Tag)
 ```
