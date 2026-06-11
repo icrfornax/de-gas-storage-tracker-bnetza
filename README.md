@@ -11,7 +11,7 @@ Umsetzung: Google Gemini / OpenAI Codex und Github Actions
 Stand aus `data/projections.csv`, letzter Lauf:
 
 ```text
-Projektion #Gasspeicher DE vom 2026-06-10
+Projektion #Gasspeicher DE vom 2026-06-11
 Fuellstand 35% am 2026-06-08
 Kritisches Minimum 20% (Entnahmerate bricht stark ein)
 
