@@ -6,6 +6,23 @@ Human in the loop: [Prof. Dr. Raphael Volz (Hochschule Pforzheim)](https://www.r
 
 Umsetzung: Google Gemini / OpenAI Codex und Github Actions
 
+## Interaktives Cockpit
+
+Die Repository-Wurzel enthaelt jetzt ein statisches Lagebild:
+
+- `index.html`: Winterreserve-Cockpit fuer Browser und GitHub Pages
+- `dashboard.js`: liest `data/projections.csv` direkt im Browser
+- `styles.css`: responsive Kontrollraum-Oberflaeche
+- `.github/workflows/pages.yml`: validiert und veroeffentlicht das Cockpit per GitHub Pages
+- `.github/workflows/daily-gasspeicher-projection.yml`: aktualisiert Daten und deployt anschliessend denselben statischen Stand
+
+Lokaler Smoke-Test:
+
+```bash
+python scripts/validate_dashboard.py
+python -m http.server 8765
+```
+
 ## Letzte Projektionen
 
 Stand aus `data/projections.csv`, letzter Lauf:

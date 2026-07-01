@@ -6,8 +6,13 @@ on:
     branches: ["main"]
     paths:
       - "scripts/**"
+      - "index.html"
+      - "styles.css"
+      - "dashboard.js"
+      - "data/projections.csv"
       - "requirements.txt"
       - ".github/workflows/daily-gasspeicher-projection.yml"
+      - ".github/workflows/pages.yml"
       - ".github/workflows/projection-smoke.yml"
   pull_request:
     branches: ["main"]
@@ -38,7 +43,11 @@ jobs:
         run: |
           python -m py_compile \
             scripts/2026_gasspeicher_deutschland.py \
-            scripts/projection_status.py
+            scripts/projection_status.py \
+            scripts/validate_dashboard.py
 
       - name: Print projection status
         run: python scripts/projection_status.py --format json
+
+      - name: Validate static dashboard
+        run: python scripts/validate_dashboard.py

@@ -8,9 +8,14 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   projection:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -36,6 +41,9 @@ jobs:
       - name: Run projection script
         run: python scripts/2026_gasspeicher_deutschland.py
 
+      - name: Validate static dashboard
+        run: python scripts/validate_dashboard.py
+
       - name: Commit data updates
         run: |
           git add data/bnetza_cache.csv data/projections.csv README.md
@@ -48,3 +56,15 @@ jobs:
           git commit -m "chore(data): update gasspeicher projections ($(date -u +%F))"
           BRANCH="${GITHUB_REF#refs/heads/}"
           git push origin "HEAD:${BRANCH}"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

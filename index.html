@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b3b3c" />
+    <meta
+      name="description"
+      content="Interaktives Lagebild zum deutschen Gasspeicherstand mit BNetzA-Daten, Szenarien und Winterreserve-Simulation."
+    />
+    <title>Gasspeicher Deutschland | Winterreserve Cockpit</title>
+    <link rel="stylesheet" href="styles.css?v=20260701-cockpit" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero" aria-labelledby="title">
+        <div class="hero-copy">
+          <p class="kicker">BNetzA-Projektion</p>
+          <h1 id="title">Gasspeicher Deutschland</h1>
+          <p class="lead">
+            Aktueller Speicherstand, kritische Schwelle und Szenarien aus dem
+            laufenden Projektionsverlauf.
+          </p>
+          <div class="hero-actions">
+            <a href="#scenario-lab" class="primary-action">Szenario simulieren</a>
+            <a href="data/projections.csv" class="secondary-action">CSV öffnen</a>
+          </div>
+        </div>
+        <div class="reserve-visual" aria-label="Aktueller Speicherstand">
+          <svg viewBox="0 0 280 280" role="img">
+            <title>Speicherstand</title>
+            <circle class="gauge-track" cx="140" cy="140" r="112" />
+            <circle id="fill-ring" class="gauge-fill" cx="140" cy="140" r="112" />
+            <circle id="threshold-ring" class="gauge-threshold" cx="140" cy="140" r="112" />
+          </svg>
+          <div class="reserve-number">
+            <span id="fill-level">--%</span>
+            <small>Füllstand</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="status-strip" aria-label="Lage">
+        <div>
+          <span>Datenstand</span>
+          <strong id="data-date">--</strong>
+        </div>
+        <div>
+          <span>Kritische Schwelle</span>
+          <strong id="minimum-threshold">--</strong>
+        </div>
+        <div>
+          <span>30-Tage-Trend</span>
+          <strong id="average-rate">--</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong id="reserve-status">lädt</strong>
+        </div>
+      </section>
+
+      <section class="trend-section" aria-labelledby="trend-title">
+        <div class="section-heading">
+          <h2 id="trend-title">Projektionsverlauf</h2>
+          <p>Jeder Punkt ist ein Lauf aus `data/projections.csv`.</p>
+        </div>
+        <div class="trend-wrap">
+          <svg id="trend-chart" viewBox="0 0 960 300" role="img">
+            <title>Historischer Speicherstand</title>
+          </svg>
+        </div>
+      </section>
+
+      <section id="scenario-lab" class="scenario-lab" aria-labelledby="lab-title">
+        <div class="section-heading">
+          <h2 id="lab-title">Winterreserve-Labor</h2>
+          <p>
+            Ziehe die tägliche Änderung. Negative Werte entnehmen Gas, positive
+            Werte füllen Speicher.
+          </p>
+        </div>
+        <div class="lab-layout">
+          <div class="slider-block">
+            <label for="rate-slider">Tägliche Änderung</label>
+            <input
+              id="rate-slider"
+              type="range"
+              min="-1.5"
+              max="0.8"
+              step="0.01"
+              value="-0.32"
+            />
+            <div class="slider-scale">
+              <span>-1,5%/Tag</span>
+              <strong id="custom-rate">--</strong>
+              <span>+0,8%/Tag</span>
+            </div>
+          </div>
+          <div class="lab-result">
+            <span id="custom-label">Szenario</span>
+            <strong id="custom-outcome">--</strong>
+            <p id="custom-detail">Daten werden geladen.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="scenario-section" aria-labelledby="scenario-title">
+        <div class="section-heading">
+          <h2 id="scenario-title">Automatische Szenarien</h2>
+          <p>Letzter Lauf aus dem Repository, sortiert von schonend bis streng.</p>
+        </div>
+        <div id="scenario-list" class="scenario-list" aria-live="polite"></div>
+      </section>
+
+      <section class="source-section" aria-label="Datenquellen">
+        <p>
+          Quelle: Bundesnetzagentur CSV-Export, archiviert in
+          <code>data/bnetza_cache.csv</code>. Projektionen und Laufhistorie:
+          <code>data/projections.csv</code>.
+        </p>
+        <p id="load-status">Lade Projektionen...</p>
+      </section>
+    </main>
+
+    <script src="dashboard.js?v=20260701-cockpit"></script>
+  </body>
+</html>
