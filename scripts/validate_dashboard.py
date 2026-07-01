@@ -32,9 +32,20 @@ def main() -> int:
             raise SystemExit(f"Missing required dashboard file: {path.relative_to(ROOT)}")
 
     index_html = (ROOT / "index.html").read_text(encoding="utf-8")
-    for expected in ("dashboard.js", "data/projections.csv", "Gasspeicher Deutschland"):
+    for expected in (
+        "dashboard.js",
+        "data/projections.csv",
+        "Gasspeicher Deutschland",
+        'id="copy-summary"',
+        'id="copy-status"',
+    ):
         if expected not in index_html:
             raise SystemExit(f"index.html does not reference {expected!r}")
+
+    dashboard_js = (ROOT / "dashboard.js").read_text(encoding="utf-8")
+    for expected in ("buildLageSummary", "copyLageSummary", "navigator.clipboard"):
+        if expected not in dashboard_js:
+            raise SystemExit(f"dashboard.js is missing {expected!r}")
 
     with (ROOT / "data" / "projections.csv").open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)

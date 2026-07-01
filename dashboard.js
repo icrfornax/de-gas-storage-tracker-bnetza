@@ -74,6 +74,12 @@ function signedPct(value) {
   return `${parsed > 0 ? "+" : ""}${parsed.toFixed(3)}%/Tag`;
 }
 
+function signedPercentagePoints(value) {
+  const parsed = number(value);
+  if (parsed === null) return "--";
+  return `${parsed > 0 ? "+" : ""}${parsed.toFixed(2)} Prozentpunkte`;
+}
+
 function dateText(value) {
   if (!value) return "--";
   const date = new Date(`${value}T00:00:00`);
@@ -228,6 +234,76 @@ function renderCustomScenario() {
     rate < 0 ? "Entnahme" : rate > 0 ? "Einspeicherung" : "Konstant";
 }
 
+function buildLageSummary() {
+  if (!state.latest) return "Gasspeicher-Lage wird noch geladen.";
+  const latest = state.latest;
+  const fill = number(latest.current_fill_level_pct) || 0;
+  const minimum = number(latest.minimum_threshold_pct) || 20;
+  const averageRate = number(latest.rate_avg_pct_per_day);
+  const [statusLabel] = reserveStatus(fill, minimum);
+  const outcome = scenarioOutcome(
+    fill,
+    minimum,
+    averageRate,
+    latest.latest_data_date,
+  );
+  return [
+    `Gasspeicher Deutschland ${dateText(latest.latest_data_date)}:`,
+    `${pct(fill)} Füllstand, Status ${statusLabel},`,
+    `${signedPercentagePoints(fill - minimum)} zur kritischen Schwelle ${pct(minimum)}.`,
+    `30-Tage-Trend ${signedPct(averageRate)}.`,
+    `Durchschnittsszenario: ${outcome.title}.`,
+    "https://volzinnovation.github.io/de-gas-storage-tracker-bnetza/",
+  ].join(" ");
+}
+
+async function copyWithFallback(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (_error) {
+      // Fall through to the selection-based fallback for restricted contexts.
+    }
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-999px";
+  document.body.append(textarea);
+  textarea.select();
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Copy command was rejected.");
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    textarea.remove();
+  }
+}
+
+async function copyLageSummary() {
+  const button = document.getElementById("copy-summary");
+  const status = document.getElementById("copy-status");
+  if (!button || !status) return;
+  try {
+    await copyWithFallback(buildLageSummary());
+    button.classList.add("is-copied");
+    button.textContent = "Kopiert";
+    status.textContent = "Lagebild wurde in die Zwischenablage kopiert.";
+    window.setTimeout(() => {
+      button.classList.remove("is-copied");
+      button.textContent = "Lage kopieren";
+      status.textContent = "";
+    }, 1800);
+  } catch (error) {
+    console.error(error);
+    status.textContent = "Kopieren ist in diesem Browser nicht verfügbar.";
+  }
+}
+
 async function init() {
   const response = await fetch(CSV_URL);
   if (!response.ok) throw new Error(`CSV request failed: ${response.status}`);
@@ -253,6 +329,9 @@ async function init() {
 document
   .getElementById("rate-slider")
   .addEventListener("input", renderCustomScenario);
+document
+  .getElementById("copy-summary")
+  ?.addEventListener("click", copyLageSummary);
 
 init().catch((error) => {
   console.error(error);

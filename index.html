@@ -24,7 +24,11 @@
           <div class="hero-actions">
             <a href="#scenario-lab" class="primary-action">Szenario simulieren</a>
             <a href="data/projections.csv" class="secondary-action">CSV öffnen</a>
+            <button id="copy-summary" class="secondary-action" type="button">
+              Lage kopieren
+            </button>
           </div>
+          <p id="copy-status" class="copy-status" aria-live="polite"></p>
         </div>
         <div class="reserve-visual" aria-label="Aktueller Speicherstand">
           <svg viewBox="0 0 280 280" role="img">

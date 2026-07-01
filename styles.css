@@ -135,20 +135,40 @@ h1 {
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
+button.secondary-action {
+  font: inherit;
+  cursor: pointer;
+}
+
 .primary-action {
   background: var(--accent-strong);
   color: #ffffff;
 }
 
 .secondary-action {
+  min-width: 128px;
   border: 1px solid var(--line);
   color: var(--ink);
   background: var(--panel);
 }
 
+.secondary-action.is-copied {
+  border-color: transparent;
+  background: var(--ok);
+  color: #ffffff;
+}
+
 .primary-action:hover,
 .secondary-action:hover {
   transform: translateY(-2px);
+}
+
+.copy-status {
+  min-height: 1.4rem;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 750;
 }
 
 .reserve-visual {
