@@ -75,7 +75,7 @@ Typische Spalten in `projections.csv`:
 ## Lokale Ausfuehrung
 
 ```bash
-python -m pip install pandas requests
+python -m pip install -r requirements.txt
 python scripts/2026_gasspeicher_deutschland.py
 ```
 
