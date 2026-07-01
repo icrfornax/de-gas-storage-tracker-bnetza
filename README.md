@@ -85,6 +85,19 @@ Optionen:
 python scripts/2026_gasspeicher_deutschland.py --minimum 20 --lookback-days 30
 ```
 
+## Read-only Statusbericht
+
+Ohne einen neuen Projektionslauf an `data/projections.csv` anzuhangen, kann der
+aktuelle lokale Stand so zusammengefasst werden:
+
+```bash
+python scripts/projection_status.py
+python scripts/projection_status.py --format json
+```
+
+Der Statusbericht zeigt den letzten Lauf, das Alter des BNetzA-Datenstands, die
+Szenario-Zieldaten und einfache Checks fuer Cache und Projektionshistorie.
+
 ## GitHub Actions Automatisierung
 
 Workflow: `.github/workflows/daily-gasspeicher-projection.yml`

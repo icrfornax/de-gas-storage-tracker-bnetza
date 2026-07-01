@@ -35,4 +35,10 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Compile projection script
-        run: python -m py_compile scripts/2026_gasspeicher_deutschland.py
+        run: |
+          python -m py_compile \
+            scripts/2026_gasspeicher_deutschland.py \
+            scripts/projection_status.py
+
+      - name: Print projection status
+        run: python scripts/projection_status.py --format json
