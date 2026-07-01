@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="700" viewBox="0 0 1300 700">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="650.0" y="40" text-anchor="middle" font-size="30" font-family="Arial, sans-serif" fill="#111">Verlauf Gasspeicherstand DE Feb 2026</text>
+<rect x="90" y="80" width="1160" height="440" fill="#f8fafc" stroke="#cbd5e1"/>
+<line x1="90" y1="520.00" x2="1250" y2="520.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="524.00" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">20.0</text>
+<line x1="90" y1="446.67" x2="1250" y2="446.67" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="450.67" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">21.3</text>
+<line x1="90" y1="373.33" x2="1250" y2="373.33" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="377.33" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">22.5</text>
+<line x1="90" y1="300.00" x2="1250" y2="300.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="304.00" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">23.8</text>
+<line x1="90" y1="226.67" x2="1250" y2="226.67" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="230.67" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">25.0</text>
+<line x1="90" y1="153.33" x2="1250" y2="153.33" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="157.33" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">26.3</text>
+<line x1="90" y1="80.00" x2="1250" y2="80.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="78" y="84.00" text-anchor="end" font-size="12" font-family="Arial, sans-serif" fill="#334155">27.5</text>
+<line x1="90" y1="520" x2="1250" y2="520" stroke="#334155" stroke-width="1.5"/>
+<line x1="90" y1="80" x2="90" y2="520" stroke="#334155" stroke-width="1.5"/>
+<line x1="90.00" y1="520" x2="90.00" y2="526" stroke="#334155" stroke-width="1"/>
+<text x="90.00" y="542" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#334155">2026-02-08</text>
+<line x1="338.57" y1="520" x2="338.57" y2="526" stroke="#334155" stroke-width="1"/>
+<text x="338.57" y="542" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#334155">2026-02-11</text>
+<line x1="670.00" y1="520" x2="670.00" y2="526" stroke="#334155" stroke-width="1"/>
+<text x="670.00" y="542" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#334155">2026-02-15</text>
+<line x1="1001.43" y1="520" x2="1001.43" y2="526" stroke="#334155" stroke-width="1"/>
+<text x="1001.43" y="542" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#334155">2026-02-19</text>
+<line x1="1250.00" y1="520" x2="1250.00" y2="526" stroke="#334155" stroke-width="1"/>
+<text x="1250.00" y="542" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#334155">2026-02-22</text>
+<polyline fill="none" stroke="#0f766e" stroke-width="3" points="90.00,110.34 172.86,154.97 255.71,191.96 338.57,217.21 421.43,237.17 504.29,262.42 587.14,288.84 670.00,312.92 752.86,345.21 835.71,383.96 918.57,424.48 1001.43,457.95 1084.29,482.61 1167.14,489.66 1250.00,479.09"/>
+<circle cx="90.00" cy="110.34" r="3.5" fill="#0f766e"/>
+<circle cx="172.86" cy="154.97" r="3.5" fill="#0f766e"/>
+<circle cx="255.71" cy="191.96" r="3.5" fill="#0f766e"/>
+<circle cx="338.57" cy="217.21" r="3.5" fill="#0f766e"/>
+<circle cx="421.43" cy="237.17" r="3.5" fill="#0f766e"/>
+<circle cx="504.29" cy="262.42" r="3.5" fill="#0f766e"/>
+<circle cx="587.14" cy="288.84" r="3.5" fill="#0f766e"/>
+<circle cx="670.00" cy="312.92" r="3.5" fill="#0f766e"/>
+<circle cx="752.86" cy="345.21" r="3.5" fill="#0f766e"/>
+<circle cx="835.71" cy="383.96" r="3.5" fill="#0f766e"/>
+<circle cx="918.57" cy="424.48" r="3.5" fill="#0f766e"/>
+<circle cx="1001.43" cy="457.95" r="3.5" fill="#0f766e"/>
+<circle cx="1084.29" cy="482.61" r="3.5" fill="#0f766e"/>
+<circle cx="1167.14" cy="489.66" r="3.5" fill="#0f766e"/>
+<circle cx="1250.00" cy="479.09" r="3.5" fill="#0f766e"/>
+<text x="650.0" y="572" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#111">latest_data_date</text>
+<text x="25" y="350.0" transform="rotate(-90 25 350.0)" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#111">current_fill_level_pct</text>
+<text x="90" y="635" text-anchor="start" font-size="13" font-family="Arial, sans-serif" fill="#1f2937">Gemäß Daten der BNetzA Datenquelle</text>
+<text x="90" y="657" text-anchor="start" font-size="12" font-family="Arial, sans-serif" fill="#1f2937">https://www.bundesnetzagentur.de/_tools/SVG/js2/_functions/csv_export.html?view=renderCSV&amp;id=870306</text>
+</svg>
