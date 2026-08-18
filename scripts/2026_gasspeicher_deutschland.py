@@ -24,11 +24,11 @@ import requests
 from zoneinfo import ZoneInfo
 
 URL_A = (
-    "https://www.bundesnetzagentur.de/_tools/SVG/js2/_functions/"
+    "https://www.bundesnetzagentur.de/SiteGlobals/Functions/SVG/_functions/"
     "csv_export.html?view=renderCSV&id=870304"
 )
 URL_B = (
-    "https://www.bundesnetzagentur.de/_tools/SVG/js2/_functions/"
+    "https://www.bundesnetzagentur.de/SiteGlobals/Functions/SVG/_functions/" #https://www.bundesnetzagentur.de/SiteGlobals/Functions/SVG/_functions/
     "csv_export.html?view=renderCSV&id=870306"
 )
 
