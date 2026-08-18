@@ -29,22 +29,22 @@ Stand aus `data/projections.csv`, letzter Lauf:
 
 ```text
 Projektion #Gasspeicher DE vom 2026-08-18
-Fuellstand 45.7% am 2026-07-23
+Fuellstand 49.91% am 2026-08-16
 Kritisches Minimum 20% (Entnahmerate bricht stark ein)
 
 Szenarien - Minimum wird erreicht am:
 
 nicht erreicht (nicht-negative Rate)
 Optimistisch (20% weniger Entnahme)
-(0.384%/Tag)
+(0.348%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Kleinste Entnahme
-(0.32%/Tag)
+(0.29%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Durchschnittliche Entnahme
-(0.173478%/Tag)
+(0.163%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Groesste Entnahme
