@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#0b3b3c" />
     <meta
       name="description"
-      content="Interaktives Lagebild zum deutschen Gasspeicherstand mit BNetzA-Daten, Szenarien und Winterreserve-Simulation."
+      content="Deutschland- und EU-Gasspeicherstände mit 30-Tage-Trend, 80%-Ziel zum 1. November und Projektion."
     />
-    <title>Gasspeicher Deutschland | Winterreserve Cockpit</title>
-    <link rel="stylesheet" href="styles.css?v=20260701-cockpit" />
+    <title>Gasspeicher Deutschland &amp; EU | Winterreserve Cockpit</title>
+    <link rel="stylesheet" href="styles.css?v=20260820-eu-trajectory" />
   </head>
   <body>
     <main class="page">
@@ -60,6 +60,65 @@
         <div>
           <span>Status</span>
           <strong id="reserve-status">lädt</strong>
+        </div>
+      </section>
+
+      <section class="eu-trajectory-section" aria-labelledby="eu-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-eyebrow">EUROPA · GIE AGSI+ AGGREGIERT</p>
+            <h2 id="eu-title">EU-Gasspeicher bis 1. November</h2>
+          </div>
+          <p>
+            Aktueller Füllstand, entspannter 80%-Zielwert und eine Fortschreibung
+            des jüngsten 30-Tage-Tempos.
+          </p>
+        </div>
+
+        <div class="eu-trajectory-panel">
+          <div class="eu-metrics" aria-label="EU-Speicherkennzahlen">
+            <div class="eu-metric">
+              <span><i class="metric-key metric-key-actual"></i>Aktueller Füllstand</span>
+              <strong id="eu-current-fill">--</strong>
+              <small id="eu-current-date">--</small>
+            </div>
+            <div class="eu-metric">
+              <span><i class="metric-key metric-key-norm"></i>5-Jahres-Norm</span>
+              <strong id="eu-norm-fill">≈--</strong>
+              <small id="eu-norm-gap">--</small>
+            </div>
+            <div class="eu-metric eu-metric-target">
+              <span><i class="metric-key metric-key-target"></i>1. November 2026</span>
+              <strong>80%</strong>
+              <small id="eu-projection-status">Projektion wird geladen …</small>
+            </div>
+          </div>
+
+          <div class="eu-chart-wrap">
+            <svg
+              id="eu-chart"
+              viewBox="0 0 960 360"
+              role="img"
+              aria-label="EU-Gasspeicherfüllstand mit 80%-Ziel und Projektion bis 1. November 2026"
+            >
+              <title>EU-Gasspeicherfüllstand und Projektion</title>
+            </svg>
+          </div>
+
+          <div class="eu-trajectory-footer">
+            <span>
+              Tempo im jüngsten Fenster: <strong id="eu-recent-rate">--</strong>
+              · erforderlich bis zum Ziel: <strong id="eu-required-rate">--</strong>
+            </span>
+            <span>
+              Projektion am 1. November: <strong id="eu-projected-fill">--</strong>
+            </span>
+          </div>
+          <p class="eu-source-note">
+            Quelle: <a href="https://global-energy-flow.com/storage/trajectory/" target="_blank" rel="noreferrer">Global Energy Flow · EU storage trajectory</a>
+            mit GIE AGSI+ Aggregatdaten. Die gestrichelte Linie ist ein Szenario auf
+            Basis der verfügbaren Messpunkte im letzten 30-Tage-Fenster, keine Garantie.
+          </p>
         </div>
       </section>
 
@@ -120,12 +179,13 @@
         <p>
           Quelle: Bundesnetzagentur CSV-Export, archiviert in
           <code>data/bnetza_cache.csv</code>. Projektionen und Laufhistorie:
-          <code>data/projections.csv</code>.
+          <code>data/projections.csv</code>. EU-Punktdaten:
+          <code>data/eu_storage.csv</code>.
         </p>
         <p id="load-status">Lade Projektionen...</p>
       </section>
     </main>
 
-    <script src="dashboard.js?v=20260701-cockpit"></script>
+    <script src="dashboard.js?v=20260820-eu-trajectory"></script>
   </body>
 </html>

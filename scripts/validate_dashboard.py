@@ -13,6 +13,7 @@ REQUIRED_FILES = [
     ROOT / "styles.css",
     ROOT / "dashboard.js",
     ROOT / "data" / "projections.csv",
+    ROOT / "data" / "eu_storage.csv",
 ]
 REQUIRED_COLUMNS = {
     "run_timestamp_utc",
@@ -36,6 +37,8 @@ def main() -> int:
         "dashboard.js",
         "data/projections.csv",
         "Gasspeicher Deutschland",
+        "EU-Gasspeicher bis 1. November",
+        'id="eu-chart"',
         'id="copy-summary"',
         'id="copy-status"',
     ):
@@ -43,7 +46,13 @@ def main() -> int:
             raise SystemExit(f"index.html does not reference {expected!r}")
 
     dashboard_js = (ROOT / "dashboard.js").read_text(encoding="utf-8")
-    for expected in ("buildLageSummary", "copyLageSummary", "navigator.clipboard"):
+    for expected in (
+        "buildLageSummary",
+        "copyLageSummary",
+        "navigator.clipboard",
+        "renderEuTrajectory",
+        "EU_TARGET_FILL",
+    ):
         if expected not in dashboard_js:
             raise SystemExit(f"dashboard.js is missing {expected!r}")
 
@@ -57,6 +66,22 @@ def main() -> int:
     if not rows:
         raise SystemExit("data/projections.csv has no projection rows")
 
+    with (ROOT / "data" / "eu_storage.csv").open(newline="", encoding="utf-8") as handle:
+        eu_reader = csv.DictReader(handle)
+        eu_required = {"date", "fill_pct", "source"}
+        eu_missing = eu_required.difference(eu_reader.fieldnames or [])
+        if eu_missing:
+            raise SystemExit(f"data/eu_storage.csv missing columns: {sorted(eu_missing)}")
+        eu_rows = list(eu_reader)
+
+    if len(eu_rows) < 2:
+        raise SystemExit("data/eu_storage.csv needs at least two observations")
+
+    for row in eu_rows:
+        fill = float(row["fill_pct"])
+        if not 0 <= fill <= 100:
+            raise SystemExit(f"EU fill level out of range: {fill}")
+
     latest = rows[-1]
     fill_level = float(latest["current_fill_level_pct"])
     threshold = float(latest["minimum_threshold_pct"])
@@ -67,7 +92,7 @@ def main() -> int:
 
     print(
         "Dashboard validation passed: "
-        f"{len(rows)} projection rows, latest fill {fill_level:.2f}%."
+        f"{len(rows)} DE projection rows, {len(eu_rows)} EU points, latest DE fill {fill_level:.2f}%."
     )
     return 0
 

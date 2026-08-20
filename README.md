@@ -11,8 +11,9 @@ Umsetzung: Google Gemini / OpenAI Codex und Github Actions
 Die Repository-Wurzel enthaelt jetzt ein statisches Lagebild:
 
 - `index.html`: Winterreserve-Cockpit fuer Browser und GitHub Pages
-- `dashboard.js`: liest `data/projections.csv` direkt im Browser
+- `dashboard.js`: liest deutsche Projektionen und die EU-Trajektorie direkt im Browser
 - `styles.css`: responsive Kontrollraum-Oberflaeche
+- `data/eu_storage.csv`: kuratierter EU-Snapshot aus der Global-Energy-Flow-Trajektorie
 - `.github/workflows/pages.yml`: validiert und veroeffentlicht das Cockpit per GitHub Pages
 - `.github/workflows/daily-gasspeicher-projection.yml`: aktualisiert Daten und deployt anschliessend denselben statischen Stand
 
@@ -73,6 +74,17 @@ Datei: `scripts/2026_gasspeicher_deutschland.py`
 - berechnet fuer jedes Szenario das Datum, an dem das Minimum erreicht wird
 - schreibt pro Ausfuehrung **eine neue Zeile** nach `data/projections.csv`
 - gibt eine lesbare Kurzfassung in der Konsole aus
+
+## EU-Trajektorie
+
+Das Cockpit zeigt zusätzlich den EU-aggregierten Gasspeicherstand aus der
+[Global-Energy-Flow-Trajektorie](https://global-energy-flow.com/storage/trajectory/).
+Die Projektion zum 1. November 2026 wird im Browser aus dem jüngsten verfügbaren
+Fenster berechnet: aktueller Füllstand plus durchschnittliche tägliche Änderung
+zwischen den Messpunkten innerhalb der letzten 30 Tage. Das Ziel ist der für 2026
+relaxte Wert von 80%. Der öffentliche Snapshot enthält derzeit einen 28-Tage-Abstand
+zwischen dem letzten und dem vorherigen verfügbaren EU-Messpunkt; diese Abweichung
+wird im Dashboard über die Quellenbeschreibung transparent gemacht.
 
 ## Output-Dateien
 
