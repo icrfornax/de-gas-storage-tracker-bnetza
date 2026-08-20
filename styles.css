@@ -364,11 +364,6 @@ button.secondary-action {
   stroke-dasharray: 3 6;
 }
 
-.eu-norm {
-  stroke: #66707e;
-  stroke-dasharray: 4 5;
-}
-
 .eu-target {
   stroke: var(--ok);
   stroke-width: 2;
@@ -397,9 +392,16 @@ button.secondary-action {
 }
 
 .eu-current-dot,
+.eu-norm-dot,
 .eu-target-dot {
   fill: var(--panel-strong);
   stroke: #6e7bd9;
+  stroke-width: 3;
+}
+
+.eu-norm-dot {
+  fill: #66707e;
+  stroke: var(--panel-strong);
   stroke-width: 3;
 }
 

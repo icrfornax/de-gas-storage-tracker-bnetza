@@ -250,16 +250,16 @@ function renderTrajectoryChart(chartId, points, latest, projection) {
     <line class="eu-grid" x1="${padding.left}" x2="${width - padding.right}" y1="${y(20)}" y2="${y(20)}"></line>
     <line class="eu-grid" x1="${padding.left}" x2="${width - padding.right}" y1="${y(50)}" y2="${y(50)}"></line>
     <line class="eu-grid" x1="${padding.left}" x2="${width - padding.right}" y1="${y(90)}" y2="${y(90)}"></line>
-    <line class="eu-norm" x1="${padding.left}" x2="${width - padding.right}" y1="${normY}" y2="${normY}"></line>
     <line class="eu-target" x1="${padding.left}" x2="${width - padding.right}" y1="${targetY}" y2="${targetY}"></line>
     <polygon class="eu-area" style="fill: url(#${chartId}-area-fill)" points="${area}"></polygon>
     <polyline class="eu-line" points="${line}"></polyline>
     <polyline class="eu-projection" points="${projectionLine}"></polyline>
     <circle class="eu-current-dot" cx="${x(latest.date)}" cy="${y(latest.value)}" r="6"></circle>
+    <circle class="eu-norm-dot" cx="${x(latest.date)}" cy="${normY}" r="5"></circle>
     <circle class="eu-target-dot" cx="${x(EU_TARGET_DATE)}" cy="${y(projection.projected)}" r="6"></circle>
     <text class="eu-axis-label" x="${padding.left}" y="${y(90) - 8}">90%</text>
     <text class="eu-axis-label eu-axis-target" x="${padding.left + 84}" y="${targetY - 8}">80% · Ziel 1. Nov</text>
-    <text class="eu-axis-label" x="${width - padding.right}" y="${normY - 8}" text-anchor="end">5-Jahres-Norm ≈${projection.normEstimate.toFixed(1)}%</text>
+    <text class="eu-axis-label" x="${x(latest.date) - 12}" y="${normY - 10}" text-anchor="end">5-Jahres-Norm ≈${projection.normEstimate.toFixed(1)}%</text>
     <text class="eu-callout" x="${x(latest.date) - 12}" y="${y(latest.value) + 30}" text-anchor="end">${pct(latest.value)}</text>
     <text class="eu-callout-muted" x="${x(latest.date) - 12}" y="${y(latest.value) + 47}" text-anchor="end">${dateText(latest.date)} · GIE direct read</text>
     <text class="eu-projection-label" x="${x(EU_TARGET_DATE) - 8}" y="${y(projection.projected) - 18}" text-anchor="end">≈${projection.projected.toFixed(1)}% am 1. Nov</text>
