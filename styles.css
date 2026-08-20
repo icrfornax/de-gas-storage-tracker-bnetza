@@ -460,9 +460,23 @@ button.secondary-action {
   line-height: 1.55;
 }
 
-.eu-source-note a {
+.eu-source-note a,
+.target-footnote a,
+.site-footer a {
   color: var(--accent-strong);
   font-weight: 800;
+}
+
+.target-footnote {
+  padding: 0 30px 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.target-footnote a {
+  white-space: nowrap;
+  text-decoration: none;
 }
 
 @keyframes eu-projection-reveal {
@@ -711,6 +725,15 @@ input[type="range"] {
   line-height: 1.6;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 code {
   padding: 2px 6px;
   border-radius: 6px;
@@ -754,6 +777,10 @@ code {
     padding: 0 22px 20px;
   }
 
+  .target-footnote {
+    padding: 0 22px 8px;
+  }
+
   .section-heading {
     display: grid;
     align-items: start;
@@ -776,6 +803,10 @@ code {
 
   .scenario-row em {
     justify-self: start;
+  }
+
+  .site-footer {
+    display: grid;
   }
 }
 
