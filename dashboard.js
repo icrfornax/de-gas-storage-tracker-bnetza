@@ -277,9 +277,9 @@ function renderWinterReserveLab(latest) {
   const slider = document.getElementById("rate-slider");
   const technicalRate = number(state.capacity.technical_max_injection_pct_per_day)
     || DEFAULT_CAPACITY.technical_max_injection_pct_per_day;
-  const sliderMax = Math.max(1.8, technicalRate * 1.1);
-  slider.max = sliderMax.toFixed(2);
-  document.getElementById("slider-max-label").textContent = `+${sliderMax.toFixed(1).replace(".", ",")}%/Tag`;
+  const sliderMax = technicalRate;
+  slider.max = sliderMax.toFixed(3);
+  document.getElementById("slider-max-label").textContent = `+${sliderMax.toFixed(3).replace(".", ",")}%/Tag`;
   document.getElementById("target-rate-detail").textContent =
     `Erforderlich: ${signedPct(requiredRate)} bis ${dateText(EU_TARGET_DATE)} · ` +
     `aktuelle 30-Tage-Rate: ${signedPct(currentRate)} · ` +
