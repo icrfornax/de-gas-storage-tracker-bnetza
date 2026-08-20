@@ -1,7 +1,12 @@
 const CSV_URL = "data/projections.csv";
 const EU_CSV_URL = "data/eu_storage.csv";
+const CAPACITY_URL = "data/de_storage_capacity.json";
 const EU_TARGET_DATE = "2026-11-01";
 const EU_TARGET_FILL = 80;
+const DEFAULT_CAPACITY = {
+  technical_max_injection_gwh_per_day: 3936.52,
+  technical_max_injection_pct_per_day: 1.642,
+};
 const RING_CIRCUMFERENCE = 704;
 const SCENARIOS = [
   ["Optimistisch", "optimistic_20pct_lower_withdrawal"],
@@ -15,6 +20,8 @@ const state = {
   latest: null,
   rows: [],
   euProjection: null,
+  capacity: DEFAULT_CAPACITY,
+  targetRate: null,
 };
 
 function parseCsv(text) {
@@ -117,6 +124,32 @@ function parseEuCsv(text) {
     }))
     .filter((row) => row.date && row.value !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function targetProjection(fill, rate, dataDate) {
+  const days = Math.max(daysBetweenDates(dataDate, EU_TARGET_DATE), 0);
+  const projected = fill + rate * days;
+  return {
+    days,
+    projected,
+    shortfall: EU_TARGET_FILL - projected,
+    met: projected >= EU_TARGET_FILL,
+  };
+}
+
+function sliderRatePosition(rate) {
+  const slider = document.getElementById("rate-slider");
+  const min = number(slider.min) ?? -1.5;
+  const max = number(slider.max) ?? 1.8;
+  return Math.max(0, Math.min(100, ((rate - min) / (max - min)) * 100));
+}
+
+function positionSliderMarker(id, rate, label) {
+  const marker = document.getElementById(id);
+  if (!marker || rate === null) return;
+  marker.style.left = `${sliderRatePosition(rate)}%`;
+  marker.querySelector("span").textContent = label;
+  marker.setAttribute("aria-label", label);
 }
 
 function daysBetween(startDate, days) {
@@ -232,6 +265,59 @@ function renderEuChart(points, latest, projection) {
   `;
 }
 
+function renderWinterReserveLab(latest) {
+  const fill = number(latest.current_fill_level_pct) || 0;
+  const currentRate = number(latest.rate_avg_pct_per_day) || 0;
+  const target = targetProjection(fill, 0, latest.latest_data_date);
+  const requiredRate = target.days > 0
+    ? (EU_TARGET_FILL - fill) / target.days
+    : 0;
+  state.targetRate = requiredRate;
+
+  const slider = document.getElementById("rate-slider");
+  const technicalRate = number(state.capacity.technical_max_injection_pct_per_day)
+    || DEFAULT_CAPACITY.technical_max_injection_pct_per_day;
+  const sliderMax = Math.max(1.8, technicalRate * 1.1);
+  slider.max = sliderMax.toFixed(2);
+  document.getElementById("slider-max-label").textContent = `+${sliderMax.toFixed(1).replace(".", ",")}%/Tag`;
+  document.getElementById("target-rate-detail").textContent =
+    `Erforderlich: ${signedPct(requiredRate)} bis ${dateText(EU_TARGET_DATE)} · ` +
+    `aktuelle 30-Tage-Rate: ${signedPct(currentRate)} · ` +
+    `zusätzlich nötig: ${signedPercentagePoints(requiredRate - currentRate)}/Tag.`;
+  positionSliderMarker(
+    "required-rate-marker",
+    requiredRate,
+    `Erforderlich ${signedPct(requiredRate)}`,
+  );
+  positionSliderMarker(
+    "technical-rate-marker",
+    technicalRate,
+    `Technisches Maximum ${signedPct(technicalRate)}`,
+  );
+}
+
+function renderCustomScenario() {
+  if (!state.latest) return;
+  const slider = document.getElementById("rate-slider");
+  const rate = number(slider.value) || 0;
+  const fill = number(state.latest.current_fill_level_pct) || 0;
+  const target = targetProjection(fill, rate, state.latest.latest_data_date);
+  const outcome = document.getElementById("custom-outcome");
+  const detail = document.getElementById("custom-detail");
+  const labResult = document.getElementById("lab-result");
+
+  document.getElementById("custom-rate").textContent = signedPct(rate);
+  document.getElementById("custom-label").textContent = "80%-Zielprüfung";
+  outcome.dataset.tone = target.met ? "ok" : "danger";
+  labResult.dataset.tone = target.met ? "ok" : "danger";
+  outcome.textContent = target.met
+    ? `Ausreichend bis ${dateText(EU_TARGET_DATE)}`
+    : `Nicht ausreichend bis ${dateText(EU_TARGET_DATE)}`;
+  detail.textContent = target.met
+    ? `Bei ${signedPct(rate)}: ${pct(target.projected)} am Zieltermin, ${target.projected - EU_TARGET_FILL > 0 ? "+" : ""}${(target.projected - EU_TARGET_FILL).toFixed(1)}pp über dem 80%-Ziel.`
+    : `Bei ${signedPct(rate)}: ${pct(target.projected)} am Zieltermin, es fehlen ${target.shortfall.toFixed(1)}pp zum 80%-Ziel.`;
+}
+
 function renderEuTrajectory(rows) {
   if (rows.length < 2) throw new Error("EU trajectory needs at least two observations.");
   const latest = rows.at(-1);
@@ -323,25 +409,6 @@ function renderScenarios(latest) {
   }).join("");
 }
 
-function renderCustomScenario() {
-  if (!state.latest) return;
-  const slider = document.getElementById("rate-slider");
-  const rate = number(slider.value);
-  const fill = number(state.latest.current_fill_level_pct) || 0;
-  const minimum = number(state.latest.minimum_threshold_pct) || 20;
-  const outcome = scenarioOutcome(
-    fill,
-    minimum,
-    rate,
-    state.latest.latest_data_date,
-  );
-  document.getElementById("custom-rate").textContent = signedPct(rate);
-  document.getElementById("custom-outcome").textContent = outcome.title;
-  document.getElementById("custom-detail").textContent = outcome.detail;
-  document.getElementById("custom-label").textContent =
-    rate < 0 ? "Entnahme" : rate > 0 ? "Einspeicherung" : "Konstant";
-}
-
 function buildLageSummary() {
   if (!state.latest) return "Gasspeicher-Lage wird noch geladen.";
   const latest = state.latest;
@@ -355,12 +422,14 @@ function buildLageSummary() {
     averageRate,
     latest.latest_data_date,
   );
+  const target = targetProjection(fill, averageRate || 0, latest.latest_data_date);
   const summary = [
     `Gasspeicher Deutschland ${dateText(latest.latest_data_date)}:`,
     `${pct(fill)} Füllstand, Status ${statusLabel},`,
     `${signedPercentagePoints(fill - minimum)} zur kritischen Schwelle ${pct(minimum)}.`,
     `30-Tage-Trend ${signedPct(averageRate)}.`,
     `Durchschnittsszenario: ${outcome.title}.`,
+    `80%-Ziel am ${dateText(EU_TARGET_DATE)}: ${pct(target.projected)} Projektion, ${target.met ? "ausreichend" : `nicht ausreichend, ${target.shortfall.toFixed(1)}pp fehlen`}.`,
   ];
   if (state.euProjection) {
     summary.push(
@@ -429,6 +498,14 @@ async function init() {
   renderHero(state.latest);
   renderTrend(rows, state.latest);
   renderScenarios(state.latest);
+  try {
+    const capacityResponse = await fetch(CAPACITY_URL);
+    if (!capacityResponse.ok) throw new Error(`Capacity JSON request failed: ${capacityResponse.status}`);
+    state.capacity = { ...DEFAULT_CAPACITY, ...(await capacityResponse.json()) };
+  } catch (error) {
+    console.warn("Capacity snapshot unavailable; using fallback.", error);
+  }
+  renderWinterReserveLab(state.latest);
   const averageRate = number(state.latest.rate_avg_pct_per_day);
   if (averageRate !== null) {
     document.getElementById("rate-slider").value = String(averageRate);
@@ -455,6 +532,9 @@ async function init() {
 document
   .getElementById("rate-slider")
   .addEventListener("input", renderCustomScenario);
+document
+  .getElementById("rate-slider")
+  .addEventListener("change", renderCustomScenario);
 document
   .getElementById("copy-summary")
   ?.addEventListener("click", copyLageSummary);

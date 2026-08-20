@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 
@@ -14,6 +15,7 @@ REQUIRED_FILES = [
     ROOT / "dashboard.js",
     ROOT / "data" / "projections.csv",
     ROOT / "data" / "eu_storage.csv",
+    ROOT / "data" / "de_storage_capacity.json",
 ]
 REQUIRED_COLUMNS = {
     "run_timestamp_utc",
@@ -38,6 +40,8 @@ def main() -> int:
         "data/projections.csv",
         "Gasspeicher Deutschland",
         "EU-Gasspeicher bis 1. November",
+        "Winterreserve-Labor",
+        "80% Füllstand zum 1.11.2026",
         'id="eu-chart"',
         'id="copy-summary"',
         'id="copy-status"',
@@ -52,6 +56,8 @@ def main() -> int:
         "navigator.clipboard",
         "renderEuTrajectory",
         "EU_TARGET_FILL",
+        "targetProjection",
+        "technical_max_injection_gwh_per_day",
     ):
         if expected not in dashboard_js:
             raise SystemExit(f"dashboard.js is missing {expected!r}")
@@ -81,6 +87,12 @@ def main() -> int:
         fill = float(row["fill_pct"])
         if not 0 <= fill <= 100:
             raise SystemExit(f"EU fill level out of range: {fill}")
+
+    with (ROOT / "data" / "de_storage_capacity.json").open(encoding="utf-8") as handle:
+        capacity = json.load(handle)
+    technical_max = float(capacity["technical_max_injection_gwh_per_day"])
+    if technical_max <= 0:
+        raise SystemExit(f"Technical injection capacity must be positive: {technical_max}")
 
     latest = rows[-1]
     fill_level = float(latest["current_fill_level_pct"])

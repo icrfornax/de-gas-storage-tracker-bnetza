@@ -14,6 +14,7 @@ Die Repository-Wurzel enthaelt jetzt ein statisches Lagebild:
 - `dashboard.js`: liest deutsche Projektionen und die EU-Trajektorie direkt im Browser
 - `styles.css`: responsive Kontrollraum-Oberflaeche
 - `data/eu_storage.csv`: kuratierter EU-Snapshot aus der Global-Energy-Flow-Trajektorie
+- `data/de_storage_capacity.json`: technischer Einspeicherleistungs-Benchmark fuer Deutschland
 - `.github/workflows/pages.yml`: validiert und veroeffentlicht das Cockpit per GitHub Pages
 - `.github/workflows/daily-gasspeicher-projection.yml`: aktualisiert Daten und deployt anschliessend denselben statischen Stand
 
@@ -85,6 +86,13 @@ zwischen den Messpunkten innerhalb der letzten 30 Tage. Das Ziel ist der für 20
 relaxte Wert von 80%. Der öffentliche Snapshot enthält derzeit einen 28-Tage-Abstand
 zwischen dem letzten und dem vorherigen verfügbaren EU-Messpunkt; diese Abweichung
 wird im Dashboard über die Quellenbeschreibung transparent gemacht.
+
+Im `Winterreserve-Labor` wird die erforderliche deutsche Tagesänderung bis zum
+80%-Ziel berechnet und auf dem Slider markiert. Zusätzlich zeigt ein zweiter Marker
+den technischen Einspeicherleistungs-Benchmark von 3.936,52 GWh/Tag aus einem
+AGSI+-Kapazitätssnapshot. Das ist eine technische Nennkapazität, keine Zusage für
+aktuell verfügbare Leistung; Wartungen, Netzengpässe und Gasverfügbarkeit können
+die tatsächlich erreichbare Rate begrenzen.
 
 ## Output-Dateien
 
