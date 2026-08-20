@@ -259,9 +259,8 @@ function renderTrajectoryChart(chartId, points, latest, projection) {
     <circle class="eu-target-dot" cx="${x(EU_TARGET_DATE)}" cy="${y(projection.projected)}" r="6"></circle>
     <text class="eu-axis-label" x="${padding.left}" y="${y(90) - 8}">90%</text>
     <text class="eu-axis-label eu-axis-target" x="${padding.left + 84}" y="${targetY - 8}">80% · Ziel 1. Nov</text>
-    <text class="eu-axis-label" x="${x(latest.date) - 12}" y="${normY - 10}" text-anchor="end">5-Jahres-Norm ≈${projection.normEstimate.toFixed(1)}%</text>
+    <text class="eu-axis-label" x="${x(latest.date) - 12}" y="${normY + 18}" text-anchor="end">5-Jahres-Norm ≈${projection.normEstimate.toFixed(1)}%</text>
     <text class="eu-callout" x="${x(latest.date) - 12}" y="${y(latest.value) + 30}" text-anchor="end">${pct(latest.value)}</text>
-    <text class="eu-callout-muted" x="${x(latest.date) - 12}" y="${y(latest.value) + 47}" text-anchor="end">${dateText(latest.date)} · GIE direct read</text>
     <text class="eu-projection-label" x="${x(EU_TARGET_DATE) - 8}" y="${y(projection.projected) - 18}" text-anchor="end">≈${projection.projected.toFixed(1)}% am 1. Nov</text>
     <text class="eu-axis-label" x="${padding.left}" y="${height - 16}">${dateText(firstDate)}</text>
     <text class="eu-axis-label" x="${x(latest.date)}" y="${height - 16}" text-anchor="middle">${dateText(latest.date)}</text>
