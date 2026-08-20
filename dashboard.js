@@ -426,20 +426,38 @@ function renderTrend(rows, latest) {
   `;
 }
 
-function renderScenarios(latest) {
-  const fill = number(latest.current_fill_level_pct) || 0;
-  const minimum = number(latest.minimum_threshold_pct) || 20;
+function seasonalReserveTarget(dataDate) {
+  const year = Number(dataDate.slice(0, 4));
+  const injectionSeason = dataDate >= `${year}-03-01` && dataDate < `${year}-11-01`;
+  return injectionSeason
+    ? { fill: 80, date: `${year}-11-01`, label: "80%" }
+    : {
+        fill: 20,
+        date: `${dataDate >= `${year}-11-01` ? year + 1 : year}-03-01`,
+        label: "20%",
+      };
+}
+
+function seasonalScenarioOutcome(fill, rate, dataDate) {
+  const target = seasonalReserveTarget(dataDate);
+  const days = Math.max(daysBetweenDates(dataDate, target.date), 0);
+  const projected = fill + rate * days;
+  const met = target.fill === 80 ? projected >= target.fill : projected <= target.fill;
+  return { target, projected, met };
+}
+
+function renderScenarios(archiveLatest, currentLatest = archiveLatest) {
+  const fill = number(currentLatest.current_fill_level_pct) || 0;
+  const dataDate = currentLatest.latest_data_date || archiveLatest.latest_data_date;
   const list = document.getElementById("scenario-list");
   list.innerHTML = SCENARIOS.map(([label, prefix]) => {
-    const rate = number(latest[`${prefix}_rate_pct_per_day`]);
-    const target = latest[`${prefix}_target_date`];
-    const outcome = target
-      ? `Minimum am ${dateText(target)}`
-      : scenarioOutcome(fill, minimum, rate, latest.latest_data_date).title;
+    const rate = number(archiveLatest[`${prefix}_rate_pct_per_day`]) || 0;
+    const outcome = seasonalScenarioOutcome(fill, rate, dataDate);
+    const targetText = `${outcome.target.label} bis ${dateText(outcome.target.date)}`;
     return `<div class="scenario-row">
       <strong>${label}</strong>
       <span>${signedPct(rate)}</span>
-      <em>${outcome}</em>
+      <em>${outcome.met ? "Erreicht" : "Verfehlt"}: ${targetText} · ${pct(outcome.projected)}</em>
     </div>`;
   }).join("");
 }
@@ -565,6 +583,7 @@ async function init() {
     renderWinterReserveLab(state.latest);
     document.getElementById("rate-slider").value = String(state.deProjection.rate);
     renderCustomScenario();
+    renderScenarios(archiveLatest, state.latest);
     document.getElementById("load-status").textContent =
       `${deGieRows.length} DE- und ${euGieRows.length} EU-Messpunkte aus GIE AGSI+ geladen. ` +
       `${rows.length} BNetzA-Projektionslaeufe bleiben als Archiv erhalten.`;

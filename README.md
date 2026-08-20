@@ -103,6 +103,10 @@ GIE-5-Jahres-Norm (Mittelwert desselben Kalendertags in den fünf Vorjahren),
 Abweichung zur Norm, 80%-Ziel und 30-Tage-Projektion. Die bisherigen BNetzA-
 Projektionsläufe werden nur noch als separates Archiv angezeigt.
 
+Die automatischen Entnahme-Szenarien prüfen saisonal gegen 80% zum 1. November
+im Einspeicherfenster (1. März bis 1. November) und gegen 20% zum 1. März im
+Winterfenster (1. November bis 1. März).
+
 Im `Winterreserve-Labor` wird die erforderliche deutsche Tagesänderung bis zum
 80%-Ziel berechnet und auf dem Slider markiert. Zusätzlich zeigt ein zweiter Marker
 den technischen Einspeicherleistungs-Benchmark von 3.936,52 GWh/Tag aus einem

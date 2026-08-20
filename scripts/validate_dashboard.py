@@ -43,6 +43,8 @@ def main() -> int:
         "EU-Gasspeicher bis 1. November",
         "Deutsche Gasspeicher bis 1. November",
         "Winterreserve-Labor",
+        "Automatische Entnahme-Szenarien",
+        "80% bis 1. November und 20% bis 1. März",
         "80% Füllstand zum 1.11.2026",
         'id="eu-chart"',
         'id="copy-summary"',
