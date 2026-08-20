@@ -41,11 +41,13 @@ def main() -> int:
         "data/projections.csv",
         "Gasspeicher Deutschland",
         "EU-Gasspeicher bis 1. November",
+        "Deutsche Gasspeicher bis 1. November",
         "Winterreserve-Labor",
         "80% Füllstand zum 1.11.2026",
         'id="eu-chart"',
         'id="copy-summary"',
         'id="copy-status"',
+        'id="de-chart"',
         "GIE AGSI+ API-Dokumentation v013",
         "Global Energy Flow",
     ):
@@ -58,6 +60,8 @@ def main() -> int:
         "copyLageSummary",
         "navigator.clipboard",
         "renderEuTrajectory",
+        "renderDeTrajectory",
+        "GIE_CSV_URL",
         "EU_TARGET_FILL",
         "targetProjection",
         "technical_max_injection_gwh_per_day",
@@ -77,7 +81,7 @@ def main() -> int:
 
     with (ROOT / "data" / "eu_storage.csv").open(newline="", encoding="utf-8") as handle:
         eu_reader = csv.DictReader(handle)
-        eu_required = {"date", "fill_pct", "source"}
+        eu_required = {"date", "fill_pct", "norm_5y_fill_pct", "source"}
         eu_missing = eu_required.difference(eu_reader.fieldnames or [])
         if eu_missing:
             raise SystemExit(f"data/eu_storage.csv missing columns: {sorted(eu_missing)}")
@@ -90,10 +94,20 @@ def main() -> int:
         fill = float(row["fill_pct"])
         if not 0 <= fill <= 100:
             raise SystemExit(f"EU fill level out of range: {fill}")
+        norm = float(row["norm_5y_fill_pct"])
+        if not 0 <= norm <= 100:
+            raise SystemExit(f"EU five-year norm out of range: {norm}")
 
     with (ROOT / "data" / "gie_storage.csv").open(newline="", encoding="utf-8") as handle:
         gie_reader = csv.DictReader(handle)
-        gie_required = {"scope", "date", "fill_pct", "injection_capacity_gwh_per_day", "source"}
+        gie_required = {
+            "scope",
+            "date",
+            "fill_pct",
+            "norm_5y_fill_pct",
+            "injection_capacity_gwh_per_day",
+            "source",
+        }
         gie_missing = gie_required.difference(gie_reader.fieldnames or [])
         if gie_missing:
             raise SystemExit(f"data/gie_storage.csv missing columns: {sorted(gie_missing)}")
@@ -105,6 +119,11 @@ def main() -> int:
         raise SystemExit("data/gie_storage.csv must contain EU and DE observations")
     if any(row["source"] != "GIE AGSI+ API v013" for row in gie_rows):
         raise SystemExit("data/gie_storage.csv contains an unexpected source attribution")
+    for scope in ("EU", "DE"):
+        scope_rows = [row for row in gie_rows if row["scope"] == scope]
+        latest_scope = max(scope_rows, key=lambda row: row["date"])
+        if not latest_scope["norm_5y_fill_pct"]:
+            raise SystemExit(f"data/gie_storage.csv has no five-year norm for latest {scope} row")
 
     with (ROOT / "data" / "de_storage_capacity.json").open(encoding="utf-8") as handle:
         capacity = json.load(handle)

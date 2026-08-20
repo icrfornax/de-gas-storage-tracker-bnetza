@@ -17,6 +17,7 @@ from __future__ import annotations
 import csv
 import datetime as dt
 import os
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,8 @@ API_DOCUMENTATION_URL = "https://www.gie.eu/transparency-platform/GIE_API_docume
 LOCAL_SECRET_PATH = ROOT / ".secrets" / "gie_api_key"
 GIE_OUTPUT_PATH = ROOT / "data" / "gie_storage.csv"
 EU_OUTPUT_PATH = ROOT / "data" / "eu_storage.csv"
-DEFAULT_FROM = "2025-11-01"
+DEFAULT_FROM = "2020-01-01"
+DASHBOARD_FROM = "2025-11-01"
 
 GIE_COLUMNS = [
     "scope",
@@ -48,10 +50,11 @@ GIE_COLUMNS = [
     "trend_pct",
     "status",
     "full_pct",
+    "norm_5y_fill_pct",
     "source",
 ]
 
-EU_COLUMNS = ["date", "fill_pct", "source", "source_note"]
+EU_COLUMNS = ["date", "fill_pct", "norm_5y_fill_pct", "source", "source_note"]
 
 
 def load_api_key() -> str:
@@ -162,8 +165,39 @@ def normalize_row(scope: str, row: dict[str, Any]) -> dict[str, str]:
         "trend_pct": format_number(as_float(row.get("trend"))),
         "status": str(row.get("status", "")),
         "full_pct": format_number(full_pct, 4),
+        "norm_5y_fill_pct": "",
         "source": "GIE AGSI+ API v013",
     }
+
+
+def add_five_year_norm(rows: list[dict[str, str]]) -> None:
+    by_scope_date: dict[tuple[str, str], float] = {}
+    for row in rows:
+        value = as_float(row["fill_pct"])
+        if value is not None:
+            date = dt.date.fromisoformat(row["date"])
+            by_scope_date[(row["scope"], date.isoformat())] = value
+
+    for row in rows:
+        date = dt.date.fromisoformat(row["date"])
+        values = [
+            by_scope_date[(row["scope"], date.replace(year=year).isoformat())]
+            for year in range(date.year - 5, date.year)
+            if _date_exists(date, year)
+            and (row["scope"], date.replace(year=year).isoformat()) in by_scope_date
+        ]
+        row["norm_5y_fill_pct"] = format_number(
+            statistics.mean(values) if values else None,
+            4,
+        )
+
+
+def _date_exists(date: dt.date, year: int) -> bool:
+    try:
+        date.replace(year=year)
+    except ValueError:
+        return False
+    return True
 
 
 def write_csv(path: Path, columns: list[str], rows: list[dict[str, str]]) -> None:
@@ -182,6 +216,7 @@ def main() -> int:
     normalized = [normalize_row("EU", row) for row in eu_rows]
     normalized.extend(normalize_row("DE", row) for row in de_rows)
     normalized = [row for row in normalized if row["date"] and row["fill_pct"]]
+    add_five_year_norm(normalized)
     normalized.sort(key=lambda row: (row["scope"], row["date"]))
     write_csv(GIE_OUTPUT_PATH, GIE_COLUMNS, normalized)
 
@@ -189,11 +224,12 @@ def main() -> int:
         {
             "date": row["date"],
             "fill_pct": row["fill_pct"],
+            "norm_5y_fill_pct": row["norm_5y_fill_pct"],
             "source": row["source"],
             "source_note": API_DOCUMENTATION_URL,
         }
         for row in normalized
-        if row["scope"] == "EU"
+        if row["scope"] == "EU" and row["date"] >= DASHBOARD_FROM
     ]
     write_csv(EU_OUTPUT_PATH, EU_COLUMNS, eu_snapshot)
 

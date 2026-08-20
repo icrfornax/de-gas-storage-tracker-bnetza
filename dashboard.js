@@ -1,8 +1,9 @@
 const CSV_URL = "data/projections.csv";
-const EU_CSV_URL = "data/eu_storage.csv";
+const GIE_CSV_URL = "data/gie_storage.csv";
 const CAPACITY_URL = "data/de_storage_capacity.json";
 const EU_TARGET_DATE = "2026-11-01";
 const EU_TARGET_FILL = 80;
+const TRAJECTORY_START_DATE = "2025-11-01";
 const DEFAULT_CAPACITY = {
   technical_max_injection_gwh_per_day: 3936.52,
   technical_max_injection_pct_per_day: 1.642,
@@ -20,6 +21,7 @@ const state = {
   latest: null,
   rows: [],
   euProjection: null,
+  deProjection: null,
   capacity: DEFAULT_CAPACITY,
   targetRate: null,
 };
@@ -115,11 +117,13 @@ function euRateText(value) {
   return `${parsed > 0 ? "+" : ""}${parsed.toFixed(2)}pp/Tag`;
 }
 
-function parseEuCsv(text) {
+function parseGieCsv(text, scope) {
   return parseCsv(text)
+    .filter((row) => row.scope === scope)
     .map((row) => ({
       date: row.date,
       value: number(row.fill_pct),
+      norm: number(row.norm_5y_fill_pct),
       source: row.source,
     }))
     .filter((row) => row.date && row.value !== null)
@@ -140,7 +144,7 @@ function targetProjection(fill, rate, dataDate) {
 function sliderRatePosition(rate) {
   const slider = document.getElementById("rate-slider");
   const min = number(slider.min) ?? -1.5;
-  const max = number(slider.max) ?? 1.8;
+  const max = number(slider.max) ?? 1.642;
   return Math.max(0, Math.min(100, ((rate - min) / (max - min)) * 100));
 }
 
@@ -215,8 +219,8 @@ function renderHero(latest) {
   setRing(document.getElementById("threshold-ring"), minimum);
 }
 
-function renderEuChart(points, latest, projection) {
-  const svg = document.getElementById("eu-chart");
+function renderTrajectoryChart(chartId, points, latest, projection) {
+  const svg = document.getElementById(chartId);
   const width = 960;
   const height = 360;
   const padding = { left: 54, right: 30, top: 24, bottom: 54 };
@@ -233,12 +237,12 @@ function renderEuChart(points, latest, projection) {
   const line = points.map((point) => `${x(point.date)},${y(point.value)}`).join(" ");
   const area = `${x(firstDate)},${chartBottom} ${line} ${x(latest.date)},${chartBottom}`;
   const targetY = y(EU_TARGET_FILL);
-  const normY = y(latest.value + 9.5);
+  const normY = y(projection.normEstimate);
   const projectionLine = `${x(latest.date)},${y(latest.value)} ${x(EU_TARGET_DATE)},${y(projection.projected)}`;
 
   svg.innerHTML = `
     <defs>
-      <linearGradient id="eu-area-fill" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="${chartId}-area-fill" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="#6e7bd9" stop-opacity="0.28"></stop>
         <stop offset="1" stop-color="#6e7bd9" stop-opacity="0.02"></stop>
       </linearGradient>
@@ -248,14 +252,14 @@ function renderEuChart(points, latest, projection) {
     <line class="eu-grid" x1="${padding.left}" x2="${width - padding.right}" y1="${y(90)}" y2="${y(90)}"></line>
     <line class="eu-norm" x1="${padding.left}" x2="${width - padding.right}" y1="${normY}" y2="${normY}"></line>
     <line class="eu-target" x1="${padding.left}" x2="${width - padding.right}" y1="${targetY}" y2="${targetY}"></line>
-    <polygon class="eu-area" points="${area}"></polygon>
+    <polygon class="eu-area" style="fill: url(#${chartId}-area-fill)" points="${area}"></polygon>
     <polyline class="eu-line" points="${line}"></polyline>
     <polyline class="eu-projection" points="${projectionLine}"></polyline>
     <circle class="eu-current-dot" cx="${x(latest.date)}" cy="${y(latest.value)}" r="6"></circle>
     <circle class="eu-target-dot" cx="${x(EU_TARGET_DATE)}" cy="${y(projection.projected)}" r="6"></circle>
     <text class="eu-axis-label" x="${padding.left}" y="${y(90) - 8}">90%</text>
     <text class="eu-axis-label eu-axis-target" x="${padding.left + 84}" y="${targetY - 8}">80% · Ziel 1. Nov</text>
-    <text class="eu-axis-label" x="${width - padding.right}" y="${normY - 8}" text-anchor="end">5-Jahres-Norm ≈${(latest.value + 9.5).toFixed(0)}%</text>
+    <text class="eu-axis-label" x="${width - padding.right}" y="${normY - 8}" text-anchor="end">5-Jahres-Norm ≈${projection.normEstimate.toFixed(1)}%</text>
     <text class="eu-callout" x="${x(latest.date) - 12}" y="${y(latest.value) + 30}" text-anchor="end">${pct(latest.value)}</text>
     <text class="eu-callout-muted" x="${x(latest.date) - 12}" y="${y(latest.value) + 47}" text-anchor="end">${dateText(latest.date)} · GIE direct read</text>
     <text class="eu-projection-label" x="${x(EU_TARGET_DATE) - 8}" y="${y(projection.projected) - 18}" text-anchor="end">≈${projection.projected.toFixed(1)}% am 1. Nov</text>
@@ -318,8 +322,8 @@ function renderCustomScenario() {
     : `Bei ${signedPct(rate)}: ${pct(target.projected)} am Zieltermin, es fehlen ${target.shortfall.toFixed(1)}pp zum 80%-Ziel.`;
 }
 
-function renderEuTrajectory(rows) {
-  if (rows.length < 2) throw new Error("EU trajectory needs at least two observations.");
+function renderTrajectory(rows, config) {
+  if (rows.length < 2) throw new Error(`${config.label} needs at least two observations.`);
   const latest = rows.at(-1);
   const cutoff = new Date(`${latest.date}T00:00:00`);
   cutoff.setDate(cutoff.getDate() - 30);
@@ -330,23 +334,55 @@ function renderEuTrajectory(rows) {
   const remainingDays = Math.max(daysBetweenDates(latest.date, EU_TARGET_DATE), 1);
   const requiredRate = (EU_TARGET_FILL - latest.value) / remainingDays;
   const projected = latest.value + rate * remainingDays;
-  const normEstimate = latest.value + 9.5;
-  const projection = { latest, anchor, rate, requiredRate, projected, remainingDays };
-  state.euProjection = projection;
+  const normEstimate = latest.norm ?? latest.value + 9.5;
+  const projection = { latest, anchor, rate, requiredRate, projected, remainingDays, normEstimate };
+  state[config.stateKey] = projection;
 
-  document.getElementById("eu-current-fill").textContent = pct(latest.value);
-  document.getElementById("eu-current-date").textContent = `${dateText(latest.date)} · ${latest.source}`;
-  document.getElementById("eu-norm-fill").textContent = `≈${normEstimate.toFixed(0)}%`;
-  document.getElementById("eu-norm-gap").textContent = `${(latest.value - normEstimate).toFixed(1)}pp vs. Norm`;
-  document.getElementById("eu-recent-rate").textContent = euRateText(rate);
-  document.getElementById("eu-required-rate").textContent = euRateText(requiredRate);
-  document.getElementById("eu-projected-fill").textContent = `${projected.toFixed(1)}%`;
-  const status = document.getElementById("eu-projection-status");
+  document.getElementById(config.currentFillId).textContent = pct(latest.value);
+  document.getElementById(config.currentDateId).textContent = `${dateText(latest.date)} · ${latest.source}`;
+  document.getElementById(config.normFillId).textContent = `≈${normEstimate.toFixed(1)}%`;
+  document.getElementById(config.normGapId).textContent = `${(latest.value - normEstimate).toFixed(1)}pp vs. Norm`;
+  document.getElementById(config.recentRateId).textContent = euRateText(rate);
+  document.getElementById(config.requiredRateId).textContent = euRateText(requiredRate);
+  document.getElementById(config.projectedFillId).textContent = `${projected.toFixed(1)}%`;
+  const status = document.getElementById(config.statusId);
   status.textContent = projected >= EU_TARGET_FILL
     ? `≈${projected.toFixed(1)}% bei aktuellem Tempo · im Zielkorridor`
     : `≈${projected.toFixed(1)}% bei aktuellem Tempo · ${Math.abs(projected - EU_TARGET_FILL).toFixed(1)}pp unter Ziel`;
   status.dataset.tone = projected >= EU_TARGET_FILL ? "ok" : "warn";
-  renderEuChart(rows, latest, projection);
+  renderTrajectoryChart(config.chartId, rows, latest, projection);
+}
+
+function renderEuTrajectory(rows) {
+  renderTrajectory(rows, {
+    label: "EU trajectory",
+    stateKey: "euProjection",
+    currentFillId: "eu-current-fill",
+    currentDateId: "eu-current-date",
+    normFillId: "eu-norm-fill",
+    normGapId: "eu-norm-gap",
+    recentRateId: "eu-recent-rate",
+    requiredRateId: "eu-required-rate",
+    projectedFillId: "eu-projected-fill",
+    statusId: "eu-projection-status",
+    chartId: "eu-chart",
+  });
+}
+
+function renderDeTrajectory(rows) {
+  renderTrajectory(rows, {
+    label: "DE trajectory",
+    stateKey: "deProjection",
+    currentFillId: "de-current-fill",
+    currentDateId: "de-current-date",
+    normFillId: "de-norm-fill",
+    normGapId: "de-norm-gap",
+    recentRateId: "de-recent-rate",
+    requiredRateId: "de-required-rate",
+    projectedFillId: "de-projected-fill",
+    statusId: "de-projection-status",
+    chartId: "de-chart",
+  });
 }
 
 function renderTrend(rows, latest) {
@@ -428,12 +464,17 @@ function buildLageSummary() {
     `${pct(fill)} Füllstand, Status ${statusLabel},`,
     `${signedPercentagePoints(fill - minimum)} zur kritischen Schwelle ${pct(minimum)}.`,
     `30-Tage-Trend ${signedPct(averageRate)}.`,
-    `Durchschnittsszenario: ${outcome.title}.`,
+    `30-Tage-Projektion: ${outcome.title}.`,
     `80%-Ziel am ${dateText(EU_TARGET_DATE)}: ${pct(target.projected)} Projektion, ${target.met ? "ausreichend" : `nicht ausreichend, ${target.shortfall.toFixed(1)}pp fehlen`}.`,
   ];
   if (state.euProjection) {
     summary.push(
       `EU ${dateText(state.euProjection.latest.date)}: ${pct(state.euProjection.latest.value)} Füllstand, Projektion ${state.euProjection.projected.toFixed(1)}% bis 1. November bei ${euRateText(state.euProjection.rate)}.`,
+    );
+  }
+  if (state.deProjection) {
+    summary.push(
+      `DE-GIE-Norm ${dateText(state.deProjection.latest.date)}: ${pct(state.deProjection.normEstimate)}; Projektion ${state.deProjection.projected.toFixed(1)}% bis 1. November bei ${euRateText(state.deProjection.rate)}.`,
     );
   }
   summary.push("https://volzinnovation.github.io/de-gas-storage-tracker-bnetza/");
@@ -492,12 +533,9 @@ async function init() {
   if (!response.ok) throw new Error(`CSV request failed: ${response.status}`);
   const rows = parseCsv(await response.text());
   state.rows = rows;
-  state.latest = rows.at(-1);
-  if (!state.latest) throw new Error("No projection rows found.");
-
-  renderHero(state.latest);
-  renderTrend(rows, state.latest);
-  renderScenarios(state.latest);
+  const archiveLatest = rows.at(-1);
+  if (!archiveLatest) throw new Error("No projection rows found.");
+  renderScenarios(archiveLatest);
   try {
     const capacityResponse = await fetch(CAPACITY_URL);
     if (!capacityResponse.ok) throw new Error(`Capacity JSON request failed: ${capacityResponse.status}`);
@@ -505,27 +543,38 @@ async function init() {
   } catch (error) {
     console.warn("Capacity snapshot unavailable; using fallback.", error);
   }
-  renderWinterReserveLab(state.latest);
-  const averageRate = number(state.latest.rate_avg_pct_per_day);
-  if (averageRate !== null) {
-    document.getElementById("rate-slider").value = String(averageRate);
-  }
-  renderCustomScenario();
   try {
-    const euResponse = await fetch(EU_CSV_URL);
-    if (!euResponse.ok) throw new Error(`EU CSV request failed: ${euResponse.status}`);
-    const euRows = parseEuCsv(await euResponse.text());
-    renderEuTrajectory(euRows);
+    const gieResponse = await fetch(GIE_CSV_URL);
+    if (!gieResponse.ok) throw new Error(`GIE CSV request failed: ${gieResponse.status}`);
+    const gieText = await gieResponse.text();
+    const euGieRows = parseGieCsv(gieText, "EU").filter(
+      (row) => row.date >= TRAJECTORY_START_DATE,
+    );
+    const deGieRows = parseGieCsv(gieText, "DE").filter(
+      (row) => row.date >= TRAJECTORY_START_DATE,
+    );
+    renderEuTrajectory(euGieRows);
+    renderDeTrajectory(deGieRows);
+    const deLatest = state.deProjection.latest;
+    state.latest = {
+      current_fill_level_pct: deLatest.value,
+      latest_data_date: deLatest.date,
+      rate_avg_pct_per_day: state.deProjection.rate,
+      minimum_threshold_pct: 20,
+    };
+    renderHero(state.latest);
+    renderWinterReserveLab(state.latest);
+    document.getElementById("rate-slider").value = String(state.deProjection.rate);
+    renderCustomScenario();
     document.getElementById("load-status").textContent =
-      `${rows.length} deutsche Projektionslaeufe und ${euRows.length} EU-Messpunkte geladen. Letzter Lauf: ${dateText(
-        state.latest.run_date_berlin,
-      )}.`;
+      `${deGieRows.length} DE- und ${euGieRows.length} EU-Messpunkte aus GIE AGSI+ geladen. ` +
+      `${rows.length} BNetzA-Projektionslaeufe bleiben als Archiv erhalten.`;
   } catch (error) {
     console.error(error);
     document.getElementById("eu-projection-status").textContent =
       "EU-Daten konnten nicht geladen werden.";
     document.getElementById("load-status").textContent =
-      `${rows.length} deutsche Projektionslaeufe geladen. EU-Snapshot nicht verfügbar.`;
+      `${rows.length} BNetzA-Projektionslaeufe geladen. GIE-Daten konnten nicht geladen werden.`;
   }
 }
 

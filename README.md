@@ -11,10 +11,10 @@ Umsetzung: Google Gemini / OpenAI Codex und Github Actions
 Die Repository-Wurzel enthaelt jetzt ein statisches Lagebild:
 
 - `index.html`: Winterreserve-Cockpit fuer Browser und GitHub Pages
-- `dashboard.js`: liest deutsche Projektionen und die EU-Trajektorie direkt im Browser
+- `dashboard.js`: liest die EU- und Deutschland-Trajektorie direkt aus dem GIE-Export
 - `styles.css`: responsive Kontrollraum-Oberflaeche
 - `data/eu_storage.csv`: EU-Serie aus dem direkten GIE-AGSI+-API-Abruf
-- `data/gie_storage.csv`: normalisierte EU- und Deutschland-Rohdaten aus der GIE-API
+- `data/gie_storage.csv`: normalisierte EU- und Deutschland-Rohdaten aus der GIE-API inklusive 5-Jahres-Norm
 - `scripts/update_gie_storage.py`: ruft GIE AGSI+ nach API-Dokumentation v013 ab
 - `data/de_storage_capacity.json`: technischer Einspeicherleistungs-Benchmark fuer Deutschland
 - `.github/workflows/pages.yml`: validiert und veroeffentlicht das Cockpit per GitHub Pages
@@ -87,16 +87,21 @@ Datei: `scripts/2026_gasspeicher_deutschland.py`
 
 ## EU-Trajektorie
 
-Das Cockpit zeigt zusätzlich den EU-aggregierten Gasspeicherstand aus dem
-direkten [GIE AGSI+ API](https://agsi.gie.eu/)-Abruf. Die
+Das Cockpit zeigt die EU- und Deutschland-Gasspeicherstände aus dem direkten
+[GIE AGSI+ API](https://agsi.gie.eu/)-Abruf. Die
 [Global-Energy-Flow-Trajektorie](https://global-energy-flow.com/storage/trajectory/)
 wird als Kontext- und Vergleichsquelle ausgewiesen.
 Die Projektion zum 1. November 2026 wird im Browser aus dem jüngsten verfügbaren
 Fenster berechnet: aktueller Füllstand plus durchschnittliche tägliche Änderung
 zwischen den Messpunkten innerhalb der letzten 30 Tage. Das Ziel ist der für 2026
-relaxte Wert von 80%. Der öffentliche Snapshot enthält derzeit einen 28-Tage-Abstand
-zwischen dem letzten und dem vorherigen verfügbaren EU-Messpunkt; diese Abweichung
-wird im Dashboard über die Quellenbeschreibung transparent gemacht.
+relaxte Wert von 80%. Der jüngste verfügbare GIE-Gastag kann gegenüber dem
+Kalendertag der Ausführung zeitverzögert sein; das Dashboard zeigt deshalb immer
+das tatsächliche Datenstand-Datum.
+
+Der deutsche Bereich verwendet dieselbe Darstellung: aktueller Füllstand,
+GIE-5-Jahres-Norm (Mittelwert desselben Kalendertags in den fünf Vorjahren),
+Abweichung zur Norm, 80%-Ziel und 30-Tage-Projektion. Die bisherigen BNetzA-
+Projektionsläufe werden nur noch als separates Archiv angezeigt.
 
 Im `Winterreserve-Labor` wird die erforderliche deutsche Tagesänderung bis zum
 80%-Ziel berechnet und auf dem Slider markiert. Zusätzlich zeigt ein zweiter Marker
@@ -109,7 +114,7 @@ die tatsächlich erreichbare Rate begrenzen.
 
 - `data/bnetza_cache.csv`: letzter heruntergeladener Stand von `url_b`
 - `data/projections.csv`: historisierte Projektionen, eine Zeile pro Lauf
-- `data/gie_storage.csv`: normalisierte GIE-AGSI+-API-Daten für EU und Deutschland
+- `data/gie_storage.csv`: normalisierte GIE-AGSI+-API-Daten für EU und Deutschland mit 5-Jahres-Norm
 - `data/eu_storage.csv`: vom Dashboard gelesene EU-Füllstandsserie aus GIE
 
 Typische Spalten in `projections.csv`:

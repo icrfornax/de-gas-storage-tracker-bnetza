@@ -350,7 +350,8 @@ button.secondary-action {
   padding: 0 18px 8px;
 }
 
-#eu-chart {
+#eu-chart,
+#de-chart {
   display: block;
   width: 100%;
   min-height: 280px;
@@ -801,7 +802,8 @@ code {
     padding: 0 8px 4px;
   }
 
-  #eu-chart {
+  #eu-chart,
+  #de-chart {
     min-height: 240px;
   }
 
