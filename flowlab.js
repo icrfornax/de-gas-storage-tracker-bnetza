@@ -35,17 +35,28 @@
     fill: 50.14,
     norm: 77.278,
     workingGasTwh: 246.489,
-    consumption: 903.9,
+    consumptionTwh: 903.9,
     injectionCapacity: 4292.58,
     withdrawalCapacity: 7067.36,
     rate: 0.16,
   };
 
-  // Sektoranteile am Jahresmittel des deutschen Gasverbrauchs (AGEB-Größenordnung).
-  const DEMAND_SHARES = { households: 0.44, industry: 0.36, power: 0.2 };
+  /**
+   * Sektoranteile am deutschen Gasverbrauch.
+   * Haushalte & Gewerbe: 39 % — Bundesnetzagentur, Gasversorgung 2024.
+   * Die restlichen 61 % fasst die BNetzA als "Industrie" zusammen (Messung an
+   * den Netzausspeisepunkten). Die Aufteilung dieser 61 % auf Industrie und
+   * Stromerzeugung ist eine Modellannahme, kalibriert auf rund 150 TWh Gas
+   * fuer Strom- und Waermeerzeugung.
+   */
+  const DEMAND_SHARES = { households: 0.39, industry: 0.43, power: 0.18 };
 
-  // Bezugsquellen-Anteile am Zufluss (Modellannahme, über die Regler veränderbar).
-  const SUPPLY_SHARES = { pipeline: 0.78, lng: 0.16, domestic: 0.06 };
+  /**
+   * Bezugsquellen-Anteile, aus den Mengen von 2024 gerechnet:
+   * Importe 865 TWh, davon 68 TWh ueber deutsche LNG-Terminals (BNetzA),
+   * heimische Foerderung 40,9 TWh (BVEG). Macht 797 / 68 / 41 von 906 TWh.
+   */
+  const SUPPLY_SHARES = { pipeline: 0.88, lng: 0.075, domestic: 0.045 };
 
   // Monatsprofile (Jan..Dez) relativ zum Sektormittel; werden auf Mittelwert 1 normiert.
   const SEASON = {
@@ -54,8 +65,16 @@
     power: [1.45, 1.35, 1.15, 0.85, 0.65, 0.62, 0.72, 0.68, 0.75, 0.95, 1.3, 1.45],
   };
 
-  // Heizperiode: Temperaturabweichung wirkt auf Haushalte und (schwächer) Kraftwerke.
-  const TEMP_NORM_C = 3;
+  /**
+   * Heizperiode: Temperaturabweichung wirkt auf Haushalte und (schwaecher)
+   * Kraftwerke. Referenz ist das DWD-Gebietsmittel Deutschland fuer den Winter
+   * (Dez-Feb) der Normalperiode 1991-2020: +1,4 °C.
+   * Die Reglergrenzen sind die Extreme der letzten 50 Winter (1977-2026):
+   * kaeltester Winter 1984/85 mit -2,5 °C, mildester 2006/07 mit +4,4 °C.
+   */
+  const TEMP_NORM_C = 1.4;
+  const TEMP_COLDEST_C = -2.5;
+  const TEMP_MILDEST_C = 4.4;
   const TEMP_SENSITIVITY = { households: 0.06, power: 0.02 };
   const HEATING_MONTHS = new Set([9, 10, 11, 0, 1, 2]);
 
@@ -68,19 +87,117 @@
    */
   const SCENARIOS = {
     measured: { demand: 1, temperature: TEMP_NORM_C },
-    optimistic: { demand: 0.8, temperature: TEMP_NORM_C + 2 },
-    pessimistic: { demand: 1.2, temperature: TEMP_NORM_C - 3 },
+    optimistic: { demand: 0.8, temperature: TEMP_MILDEST_C },
+    pessimistic: { demand: 1.2, temperature: TEMP_COLDEST_C },
+  };
+
+  /**
+   * Belege pro Regler. Jeder Eintrag sagt, woher der Startwert kommt und was
+   * das Reglermaximum bedeutet. Wo keine amtliche Zahl existiert, steht das
+   * ausdruecklich dabei — geraten wird nichts.
+   */
+  const SOURCES = {
+    pipeline: {
+      titel: "Pipeline-Importe",
+      aktuell:
+        "Startwert: 88 % des Zuflusses am Datenstand. Der Anteil stammt aus den " +
+        "Importmengen 2024 — 865 TWh insgesamt, davon 68 TWh über deutsche " +
+        "LNG-Terminals. Der Rest kam per Pipeline, überwiegend aus Norwegen (48 %), " +
+        "den Niederlanden (25 %) und Belgien (18 %).",
+      maximum:
+        "3.000 GWh/Tag. Im Jahresmittel 2024 lagen die Pipeline-Importe bei rund " +
+        "2.180 GWh/Tag. Höher käme man nur bei durchgehender Vollauslastung der " +
+        "Grenzübergangspunkte. <strong>Eine amtliche Gesamtkapazität aller deutschen " +
+        "Einspeisepunkte ist nicht veröffentlicht</strong> — diese Obergrenze ist " +
+        "deshalb eine Modellgrenze, kein Messwert.",
+      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
+    },
+    lng: {
+      titel: "LNG-Terminals",
+      aktuell:
+        "Startwert: 7,5 % des Zuflusses. 2024 kamen 68 TWh über die deutschen " +
+        "LNG-Terminals — 8 % aller Importe, im Jahresmittel rund 186 GWh/Tag.",
+      maximum:
+        "400 GWh/Tag. Die drei betriebsbereiten Terminals der bundeseigenen DET — " +
+        "Wilhelmshaven 1 (4,8), Wilhelmshaven 2 (4,3) und Brunsbüttel " +
+        "(4,0 Mrd. m³/Jahr) — ergeben zusammen 13,1 Mrd. m³/Jahr, also etwa " +
+        "380 GWh/Tag bei lückenloser Anlandung. 2024 wurde davon knapp die Hälfte " +
+        "genutzt. Stade und Mukran sind hier nicht eingerechnet.",
+      quellen: [
+        ["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"],
+        ["Deutsche Energy Terminal, Terminals", "https://energy-terminal.de/en/terminals"],
+      ],
+    },
+    domestic: {
+      titel: "Inland & Biomethan",
+      aktuell:
+        "Startwert: 4,5 % des Zuflusses. Die heimische Erdgasförderung lag 2024 bei " +
+        "4,2 Mrd. m³ beziehungsweise 40,9 TWh und deckte 5,4 % des deutschen Bedarfs.",
+      maximum:
+        "200 GWh/Tag. Die Förderung allein entspricht rund 112 GWh/Tag und ist " +
+        "rückläufig. Der Abstand bis zum Maximum wäre zusätzliche " +
+        "Biomethan-Einspeisung — deren Ausbaupfad ist eine Modellannahme.",
+      quellen: [["BVEG, Jahresbericht 2024 — Erdgasförderung", "https://jahresbericht.bveg.de/erdgasfoerderung/"]],
+    },
+    households: {
+      titel: "Private Haushalte & Gewerbe",
+      aktuell:
+        "Startwert: 39 % des Jahresmittels. Die Bundesnetzagentur weist für 2024 " +
+        "aus, dass 39 % des deutschen Gasverbrauchs auf Haushalts- und " +
+        "Gewerbekunden entfielen.",
+      maximum:
+        "2.000 GWh/Tag — gut das Doppelte des Startwerts. Wichtig: der Regler " +
+        "stellt das <strong>Jahresmittel</strong>. Im Januar liegt der tatsächliche " +
+        "Bedarf beim rund Doppelten dieses Werts, bei Kälte noch darüber.",
+      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
+    },
+    industry: {
+      titel: "Industrie",
+      aktuell:
+        "Startwert: 43 % des Jahresmittels. Die Bundesnetzagentur führt für 2024 " +
+        "61 % des Verbrauchs unter Industrie — gemessen an den Netzausspeisepunkten. " +
+        "<strong>Die Aufteilung dieser 61 % auf Industrie und Stromerzeugung ist eine " +
+        "Modellannahme</strong>, keine amtliche Zahl.",
+      maximum:
+        "2.200 GWh/Tag im Jahresmittel. Das entspräche einer Industrieproduktion " +
+        "deutlich über dem heutigen Niveau; der Industriebedarf ist seit 2021 " +
+        "gefallen, nicht gestiegen.",
+      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
+    },
+    power: {
+      titel: "Stromerzeugung",
+      aktuell:
+        "Startwert: 18 % des Jahresmittels, kalibriert auf rund 150 TWh Gas für " +
+        "Strom- und Wärmeerzeugung. <strong>Modellannahme</strong> innerhalb der " +
+        "61 %, die die Bundesnetzagentur als Industrie führt.",
+      maximum:
+        "900 GWh/Tag im Jahresmittel. Erreichbar nur, wenn Gaskraftwerke dauerhaft " +
+        "einen deutlich größeren Teil der Residuallast decken als heute.",
+      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
+    },
+    temperature: {
+      titel: "Winter-Durchschnittstemperatur",
+      aktuell:
+        "+1,4 °C ist das Gebietsmittel des Deutschen Wetterdienstes für den " +
+        "deutschen Winter (Dezember bis Februar) in der Normalperiode 1991–2020.",
+      maximum:
+        "Die Reglerenden sind die Extreme der letzten 50 Winter: <strong>−2,5 °C</strong> " +
+        "im Winter 1984/85 und <strong>+4,4 °C</strong> im Winter 2006/07. Kälter oder " +
+        "milder war es in Deutschland seit 1977 in keinem Winter. Die Abweichung von " +
+        "der Norm wirkt im Modell auf die gesamte Heizperiode (Okt–Mär).",
+      quellen: [["DWD, Gebietsmittel Winter Deutschland (CDC)", "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt"]],
+    },
   };
 
   // Reglerbereiche in GWh/Tag; Temperatur in °C.
   const RANGES = {
-    pipeline: { min: 0, max: 2600, step: 10 },
-    lng: { min: 0, max: 1200, step: 10 },
-    domestic: { min: 0, max: 400, step: 5 },
+    pipeline: { min: 0, max: 3000, step: 10 },
+    lng: { min: 0, max: 400, step: 5 },
+    domestic: { min: 0, max: 200, step: 5 },
     households: { min: 0, max: 2000, step: 10 },
-    industry: { min: 0, max: 1600, step: 10 },
-    power: { min: 0, max: 1200, step: 10 },
-    temperature: { min: -8, max: 12, step: 0.5 },
+    industry: { min: 0, max: 2200, step: 10 },
+    power: { min: 0, max: 900, step: 10 },
+    temperature: { min: TEMP_COLDEST_C, max: TEMP_MILDEST_C, step: 0.1 },
   };
 
   const state = {
@@ -90,7 +207,7 @@
     ppGwh: (DEFAULTS.workingGasTwh * 1000) / 100,
     injectionCapacity: DEFAULTS.injectionCapacity,
     withdrawalCapacity: DEFAULTS.withdrawalCapacity,
-    consumption: DEFAULTS.consumption,
+    consumptionTwh: DEFAULTS.consumptionTwh,
     measuredRate: DEFAULTS.rate,
     seasonEnd: "2027-03-31",
     days: 0,
@@ -495,6 +612,83 @@
     renderConnectors(demand);
   }
 
+  /* ------------------------------------------------------------------ Belege */
+
+  let popoverTimer = null;
+  let popoverFest = null;
+
+  function versteckeBeleg(sofort) {
+    window.clearTimeout(popoverTimer);
+    const zeigen = () => {
+      const pop = el("flow-source-popover");
+      if (pop) pop.hidden = true;
+      document.querySelectorAll(".flow-info[aria-expanded=true]")
+        .forEach((b) => b.setAttribute("aria-expanded", "false"));
+    };
+    if (sofort) zeigen();
+    else popoverTimer = window.setTimeout(zeigen, 220);
+  }
+
+  function zeigeBeleg(key, ausloeser) {
+    const beleg = SOURCES[key];
+    const pop = el("flow-source-popover");
+    if (!beleg || !pop) return;
+    window.clearTimeout(popoverTimer);
+
+    pop.innerHTML =
+      `<h4>${beleg.titel}</h4>` +
+      `<p><span class="flow-pop-label">Aktueller Wert</span>${beleg.aktuell}</p>` +
+      `<p><span class="flow-pop-label">Maximum</span>${beleg.maximum}</p>` +
+      `<p class="flow-pop-quelle">${beleg.quellen
+        .map(([titel, url]) => `<a href="${url}" target="_blank" rel="noreferrer">${titel}</a>`)
+        .join(" · ")}</p>`;
+    pop.hidden = false;
+    ausloeser.setAttribute("aria-expanded", "true");
+
+    const rand = 12;
+    const breite = Math.min(380, window.innerWidth - 2 * rand);
+    pop.style.width = `${breite}px`;
+    const r = ausloeser.getBoundingClientRect();
+    pop.style.left = `${clamp(r.left + r.width / 2 - breite / 2, rand, window.innerWidth - breite - rand)}px`;
+    pop.style.top = `${r.bottom + 10}px`;
+    const hoehe = pop.getBoundingClientRect().height;
+    if (r.bottom + 10 + hoehe > window.innerHeight - rand) {
+      pop.style.top = `${Math.max(rand, r.top - hoehe - 10)}px`;
+    }
+  }
+
+  function bindeBelege() {
+    const pop = el("flow-source-popover");
+    pop?.addEventListener("mouseenter", () => window.clearTimeout(popoverTimer));
+    pop?.addEventListener("mouseleave", () => versteckeBeleg());
+
+    document.querySelectorAll(".flow-info").forEach((knopf) => {
+      const key = knopf.dataset.info;
+      knopf.setAttribute("aria-expanded", "false");
+      knopf.addEventListener("mouseenter", () => { if (!popoverFest) zeigeBeleg(key, knopf); });
+      knopf.addEventListener("mouseleave", () => { if (!popoverFest) versteckeBeleg(); });
+      knopf.addEventListener("focus", () => zeigeBeleg(key, knopf));
+      knopf.addEventListener("blur", () => { if (!popoverFest) versteckeBeleg(); });
+      // Klick haelt das Popover offen — noetig auf Touch, praktisch am Desktop.
+      knopf.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (popoverFest === key) { popoverFest = null; versteckeBeleg(true); }
+        else { popoverFest = key; zeigeBeleg(key, knopf); }
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { popoverFest = null; versteckeBeleg(true); }
+    });
+    document.addEventListener("click", (event) => {
+      if (!popoverFest) return;
+      if (event.target.closest(".flow-info") || event.target.closest(".flow-popover")) return;
+      popoverFest = null;
+      versteckeBeleg(true);
+    });
+    window.addEventListener("scroll", () => { if (!popoverFest) versteckeBeleg(true); }, { passive: true });
+  }
+
   /* ---------------------------------------------------------------- Interaktion */
 
   const SLIDERS = [
@@ -643,7 +837,13 @@
       number(latest.injection_capacity_gwh_per_day) ?? DEFAULTS.injectionCapacity;
     state.withdrawalCapacity =
       number(latest.withdrawal_capacity_gwh_per_day) ?? DEFAULTS.withdrawalCapacity;
-    state.consumption = number(latest.consumption_gwh_per_day) ?? DEFAULTS.consumption;
+    // Achtung: Die Spalte heisst im Repo _gwh_per_day, traegt aber den
+    // AGSI-Wert "consumption" — und der ist der Jahresverbrauch in TWh.
+    // Beleg: der Wert aendert sich ueber 2422 Tage nur fuenfmal, und die
+    // EU-Zeile traegt 3519 — als GWh/Tag waere das ein Sechstel des realen
+    // EU-Verbrauchs, als TWh/Jahr passt es.
+    state.consumptionTwh =
+      number(latest.consumption_gwh_per_day) ?? DEFAULTS.consumptionTwh;
     state.measuredRate = measuredRate(rows);
   }
 
@@ -653,20 +853,27 @@
    *              zurückgerechnet und nach Sektoranteilen aufgeteilt.
    *   Zufluss  = Verbrauch + gemessenes 30-Tage-Einspeichertempo.
    */
-  function seedFromData() {
+  /** Jahresmittel des Tagesverbrauchs in GWh, aus dem AGSI-Jahreswert. */
+  const annualMeanDemand = () => (state.consumptionTwh * 1000) / 365;
+
+  /** Verbrauch am Datenstand, wie ihn das Monatsprofil ergibt. */
+  function demandAtStart() {
     const month = parseDate(state.startDate).getMonth();
-    const weighted = Object.entries(DEMAND_SHARES).reduce(
+    return annualMeanDemand() * Object.entries(DEMAND_SHARES).reduce(
       (sum, [sector, share]) => sum + share * SEASON[sector][month],
       0,
     );
-    const annualMean = state.consumption / weighted;
+  }
+
+  function seedFromData() {
+    const annualMean = annualMeanDemand();
     state.demand = {
       households: annualMean * DEMAND_SHARES.households,
       industry: annualMean * DEMAND_SHARES.industry,
       power: annualMean * DEMAND_SHARES.power,
     };
 
-    const supply = state.consumption + state.measuredRate * state.ppGwh;
+    const supply = demandAtStart() + state.measuredRate * state.ppGwh;
     state.supply = {
       pipeline: supply * SUPPLY_SHARES.pipeline,
       lng: supply * SUPPLY_SHARES.lng,
@@ -710,16 +917,16 @@
   function scenarioText() {
     const winter = `${nf1.format(state.temperature).replace("-", "−")} °C`;
     if (state.scenario === "measured") {
-      return `<strong>Messwerte</strong> — Verbrauch wie am ${dateText(state.startDate)} gemessen ` +
-        `(${nf0.format(Math.round(state.consumption))} GWh/Tag), Winter auf Norm ${winter}.`;
+      return `<strong>Messwerte</strong> — Jahresverbrauch ${nf1.format(state.consumptionTwh)} TWh ` +
+        `(${nf0.format(Math.round(annualMeanDemand()))} GWh/Tag im Mittel), Winter auf der DWD-Norm ${winter}.`;
     }
     if (state.scenario === "optimistic") {
-      return `<strong>Optimistisch</strong> — Verbrauch 20 % unter den Messwerten, milder Winter ${winter}. ` +
-        `Dieselbe ±20 %-Konvention wie die Entnahme-Szenarien weiter unten.`;
+      return `<strong>Optimistisch</strong> — Verbrauch 20 % unter dem Mittel und der ` +
+        `mildeste Winter der letzten 50 Jahre (2006/07, ${winter}). Beide Annahmen wirken zusammen.`;
     }
     if (state.scenario === "pessimistic") {
-      return `<strong>Pessimistisch</strong> — Verbrauch 20 % über den Messwerten, kalter Winter ${winter}. ` +
-        `Dieselbe ±20 %-Konvention wie die Entnahme-Szenarien weiter unten.`;
+      return `<strong>Pessimistisch</strong> — Verbrauch 20 % über dem Mittel und der ` +
+        `kälteste Winter der letzten 50 Jahre (1984/85, ${winter}). Beide Annahmen wirken zusammen.`;
     }
     return `<strong>Eigene Einstellung</strong> — Entnahme oder Temperatur von Hand verändert. ` +
       `Winter ${winter}.`;
@@ -751,17 +958,21 @@
   }
 
   function renderSourceNote(loaded) {
+    const q = (url, text) => `<a href="${url}" target="_blank" rel="noreferrer">${text}</a>`;
     el("flow-source-note").innerHTML = loaded
-      ? `Startwerte aus <a href="https://agsi.gie.eu/" target="_blank" rel="noreferrer">GIE AGSI+</a> ` +
-        `vom ${dateText(state.startDate)}: ${nf2.format(state.startFill)}% Füllstand, ` +
-        `${nf0.format(Math.round(state.consumption))} GWh/Tag Verbrauch, Arbeitsgasvolumen ` +
-        `${nf1.format((state.ppGwh * 100) / 1000)} TWh (1 Prozentpunkt ≈ ${nf0.format(Math.round(state.ppGwh))} GWh). ` +
-        `Die Regler starten auf dem gemessenen 30-Tage-Tempo von ` +
-        `${signed(state.measuredRate, (value) => nf2.format(value))} pp/Tag. ` +
-        `Die Projektion hält den eingestellten Zufluss konstant, während die Entnahme dem ` +
-        `Monats- und Temperaturprofil folgt — deshalb liegt sie unter der linearen Fortschreibung ` +
-        `im Chart darüber. <strong>Sektoranteile, Monats- und Temperaturprofile sind ` +
-        `Modellannahmen</strong>: eine Simulation zum Durchspielen, keine Prognose.`
+      ? `<strong>Datenstand ${dateText(state.startDate)}.</strong> Füllstand ${nf2.format(state.startFill)} %, ` +
+        `5-Jahres-Norm, Arbeitsgasvolumen ${nf1.format((state.ppGwh * 100) / 1000)} TWh ` +
+        `(1 Prozentpunkt ≈ ${nf0.format(Math.round(state.ppGwh))} GWh) und Jahresverbrauch ` +
+        `${nf1.format(state.consumptionTwh)} TWh stammen aus ${q("https://agsi.gie.eu/", "GIE AGSI+")} ` +
+        `(API v013). Der Zufluss startet so, dass die Netto-Bilanz dem gemessenen 30-Tage-Tempo von ` +
+        `${signed(state.measuredRate, (v) => nf2.format(v))} pp/Tag entspricht. ` +
+        `Sektoranteile und Bezugsmix: ${q("https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html", "Bundesnetzagentur")} ` +
+        `und ${q("https://jahresbericht.bveg.de/erdgasfoerderung/", "BVEG")}; LNG-Kapazität: ` +
+        `${q("https://energy-terminal.de/en/terminals", "Deutsche Energy Terminal")}; Wintertemperaturen: ` +
+        `${q("https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt", "DWD-Gebietsmittel")}. ` +
+        `Das <i>i</i> an jedem Regler nennt Herkunft und Bedeutung des Maximums. ` +
+        `<strong>Monatsprofile, Temperatursensitivität und die Aufteilung zwischen Industrie und ` +
+        `Stromerzeugung sind Modellannahmen</strong> — eine Simulation zum Durchspielen, keine Prognose.`
       : "Datendateien nicht erreichbar; die Simulation läuft mit hinterlegten Startwerten.";
   }
 
@@ -808,29 +1019,29 @@
 
         <div class="flow-card" data-flow="pipeline">
           <div class="flow-card-row">
-            <label for="flow-slider-pipeline">Pipeline-Importe</label>
+            <span class="flow-card-name"><label for="flow-slider-pipeline">Pipeline-Importe</label><button class="flow-info" type="button" data-info="pipeline" aria-label="Quelle und Maximum: Pipeline-Importe">i</button></span>
             <span class="flow-card-value" id="flow-value-pipeline">--</span>
           </div>
           <input id="flow-slider-pipeline" type="range" value="0" />
-          <small>Norwegen · Niederlande/Belgien · Frankreich</small>
+          <small>Norwegen 48 % · Niederlande 25 % · Belgien 18 %</small>
         </div>
 
         <div class="flow-card" data-flow="lng">
           <div class="flow-card-row">
-            <label for="flow-slider-lng">LNG-Terminals</label>
+            <span class="flow-card-name"><label for="flow-slider-lng">LNG-Terminals</label><button class="flow-info" type="button" data-info="lng" aria-label="Quelle und Maximum: LNG-Terminals">i</button></span>
             <span class="flow-card-value" id="flow-value-lng">--</span>
           </div>
           <input id="flow-slider-lng" type="range" value="0" />
-          <small>Wilhelmshaven · Brunsbüttel · Stade</small>
+          <small>Wilhelmshaven 1 &amp; 2 · Brunsbüttel</small>
         </div>
 
         <div class="flow-card" data-flow="domestic">
           <div class="flow-card-row">
-            <label for="flow-slider-domestic">Inland &amp; Biomethan</label>
+            <span class="flow-card-name"><label for="flow-slider-domestic">Inland &amp; Biomethan</label><button class="flow-info" type="button" data-info="domestic" aria-label="Quelle und Maximum: Inland &amp; Biomethan">i</button></span>
             <span class="flow-card-value" id="flow-value-domestic">--</span>
           </div>
           <input id="flow-slider-domestic" type="range" value="0" />
-          <small>Heimische Förderung · Einspeisung</small>
+          <small>Heimische Förderung · Biomethan</small>
         </div>
       </div>
 
@@ -885,7 +1096,7 @@
 
         <div class="flow-card" data-flow="households">
           <div class="flow-card-row">
-            <label for="flow-slider-households">Private Haushalte</label>
+            <span class="flow-card-name"><label for="flow-slider-households">Haushalte &amp; Gewerbe</label><button class="flow-info" type="button" data-info="households" aria-label="Quelle und Maximum: Haushalte und Gewerbe">i</button></span>
             <span class="flow-card-value" id="flow-value-households">--</span>
           </div>
           <input id="flow-slider-households" type="range" value="0" />
@@ -894,7 +1105,7 @@
 
         <div class="flow-card" data-flow="industry">
           <div class="flow-card-row">
-            <label for="flow-slider-industry">Industrie</label>
+            <span class="flow-card-name"><label for="flow-slider-industry">Industrie</label><button class="flow-info" type="button" data-info="industry" aria-label="Quelle und Maximum: Industrie">i</button></span>
             <span class="flow-card-value" id="flow-value-industry">--</span>
           </div>
           <input id="flow-slider-industry" type="range" value="0" />
@@ -903,7 +1114,7 @@
 
         <div class="flow-card" data-flow="power">
           <div class="flow-card-row">
-            <label for="flow-slider-power">Stromerzeugung</label>
+            <span class="flow-card-name"><label for="flow-slider-power">Stromerzeugung</label><button class="flow-info" type="button" data-info="power" aria-label="Quelle und Maximum: Stromerzeugung">i</button></span>
             <span class="flow-card-value" id="flow-value-power">--</span>
           </div>
           <input id="flow-slider-power" type="range" value="0" />
@@ -956,18 +1167,27 @@
       </div>
 
       <div class="flow-temperature">
-        <span><i class="flow-key flow-key-out"></i>Winter-Durchschnittstemperatur</span>
+        <span><i class="flow-key flow-key-out"></i>Winter-Durchschnittstemperatur
+          <button class="flow-info" type="button" data-info="temperature"
+                  aria-label="Quelle und Grenzen: Winter-Durchschnittstemperatur">i</button>
+        </span>
         <div class="flow-temperature-row">
           <input id="flow-slider-temperature" type="range" value="3"
                  aria-label="Winter-Durchschnittstemperatur in Grad Celsius" />
           <strong id="flow-value-temperature">--</strong>
         </div>
-        <p class="flow-temperature-scale"><span>−8 °C</span><span>Norm ≈ +3 °C</span><span>+12 °C</span></p>
-        <p>Kälter heißt mehr Entnahme in der Heizperiode (Okt–Mär).</p>
+        <p class="flow-temperature-scale">
+          <span>−2,5 °C · 1984/85</span><span>Norm +1,4 °C</span><span>+4,4 °C · 2006/07</span>
+        </p>
+        <p>Kältester und mildester deutscher Winter der letzten 50 Jahre (DWD-Gebietsmittel
+          Dez–Feb). Kälter heißt mehr Entnahme in der Heizperiode (Okt–Mär).</p>
       </div>
     </div>
 
     <p class="flow-source-note" id="flow-source-note">Startwerte werden geladen …</p>
+
+    <div class="flow-popover" id="flow-source-popover" role="dialog"
+         aria-label="Quelle und Maximum" hidden></div>
   </div>
 </section>
 `;
@@ -1019,6 +1239,7 @@
     renderAxisScale();
     renderLinearReference();
     bindControls();
+    bindeBelege();
     applySliderPositions();
     renderSourceNote(loaded);
     update();
