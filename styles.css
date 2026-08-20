@@ -468,7 +468,8 @@ button.secondary-action {
 }
 
 .target-footnote {
-  padding: 0 30px 8px;
+  max-width: 28rem;
+  padding-top: 2px;
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.5;
@@ -775,10 +776,6 @@ code {
 
   .eu-source-note {
     padding: 0 22px 20px;
-  }
-
-  .target-footnote {
-    padding: 0 22px 8px;
   }
 
   .section-heading {
