@@ -15,6 +15,7 @@ REQUIRED_FILES = [
     ROOT / "dashboard.js",
     ROOT / "data" / "projections.csv",
     ROOT / "data" / "eu_storage.csv",
+    ROOT / "data" / "gie_storage.csv",
     ROOT / "data" / "de_storage_capacity.json",
 ]
 REQUIRED_COLUMNS = {
@@ -45,6 +46,8 @@ def main() -> int:
         'id="eu-chart"',
         'id="copy-summary"',
         'id="copy-status"',
+        "GIE AGSI+ API-Dokumentation v013",
+        "Global Energy Flow",
     ):
         if expected not in index_html:
             raise SystemExit(f"index.html does not reference {expected!r}")
@@ -87,6 +90,21 @@ def main() -> int:
         fill = float(row["fill_pct"])
         if not 0 <= fill <= 100:
             raise SystemExit(f"EU fill level out of range: {fill}")
+
+    with (ROOT / "data" / "gie_storage.csv").open(newline="", encoding="utf-8") as handle:
+        gie_reader = csv.DictReader(handle)
+        gie_required = {"scope", "date", "fill_pct", "injection_capacity_gwh_per_day", "source"}
+        gie_missing = gie_required.difference(gie_reader.fieldnames or [])
+        if gie_missing:
+            raise SystemExit(f"data/gie_storage.csv missing columns: {sorted(gie_missing)}")
+        gie_rows = list(gie_reader)
+
+    if not gie_rows:
+        raise SystemExit("data/gie_storage.csv has no GIE observations")
+    if {row["scope"] for row in gie_rows} != {"EU", "DE"}:
+        raise SystemExit("data/gie_storage.csv must contain EU and DE observations")
+    if any(row["source"] != "GIE AGSI+ API v013" for row in gie_rows):
+        raise SystemExit("data/gie_storage.csv contains an unexpected source attribution")
 
     with (ROOT / "data" / "de_storage_capacity.json").open(encoding="utf-8") as handle:
         capacity = json.load(handle)

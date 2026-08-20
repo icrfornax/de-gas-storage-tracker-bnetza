@@ -13,7 +13,9 @@ Die Repository-Wurzel enthaelt jetzt ein statisches Lagebild:
 - `index.html`: Winterreserve-Cockpit fuer Browser und GitHub Pages
 - `dashboard.js`: liest deutsche Projektionen und die EU-Trajektorie direkt im Browser
 - `styles.css`: responsive Kontrollraum-Oberflaeche
-- `data/eu_storage.csv`: kuratierter EU-Snapshot aus der Global-Energy-Flow-Trajektorie
+- `data/eu_storage.csv`: EU-Serie aus dem direkten GIE-AGSI+-API-Abruf
+- `data/gie_storage.csv`: normalisierte EU- und Deutschland-Rohdaten aus der GIE-API
+- `scripts/update_gie_storage.py`: ruft GIE AGSI+ nach API-Dokumentation v013 ab
 - `data/de_storage_capacity.json`: technischer Einspeicherleistungs-Benchmark fuer Deutschland
 - `.github/workflows/pages.yml`: validiert und veroeffentlicht das Cockpit per GitHub Pages
 - `.github/workflows/daily-gasspeicher-projection.yml`: aktualisiert Daten und deployt anschliessend denselben statischen Stand
@@ -64,6 +66,13 @@ Pessimistisch (20% mehr Entnahme)
 
 Der Workflow nutzt `url_b` fuer die taegliche Projektion.
 
+Die EU- und Deutschland-Serien werden direkt aus der
+[GIE AGSI+ API](https://agsi.gie.eu/) erzeugt. Authentifizierung und
+Felddefinitionen folgen der [offiziellen GIE-API-Dokumentation v013](https://www.gie.eu/transparency-platform/GIE_API_documentation_v013.pdf).
+Die [Global-Energy-Flow-Trajektorie](https://global-energy-flow.com/storage/trajectory/)
+wird im Cockpit als Kontextquelle verlinkt; die angezeigten Messpunkte stammen
+aus dem direkten GIE-Abruf.
+
 ## Was der Python-Job macht
 
 Datei: `scripts/2026_gasspeicher_deutschland.py`
@@ -78,8 +87,10 @@ Datei: `scripts/2026_gasspeicher_deutschland.py`
 
 ## EU-Trajektorie
 
-Das Cockpit zeigt zusätzlich den EU-aggregierten Gasspeicherstand aus der
-[Global-Energy-Flow-Trajektorie](https://global-energy-flow.com/storage/trajectory/).
+Das Cockpit zeigt zusätzlich den EU-aggregierten Gasspeicherstand aus dem
+direkten [GIE AGSI+ API](https://agsi.gie.eu/)-Abruf. Die
+[Global-Energy-Flow-Trajektorie](https://global-energy-flow.com/storage/trajectory/)
+wird als Kontext- und Vergleichsquelle ausgewiesen.
 Die Projektion zum 1. November 2026 wird im Browser aus dem jüngsten verfügbaren
 Fenster berechnet: aktueller Füllstand plus durchschnittliche tägliche Änderung
 zwischen den Messpunkten innerhalb der letzten 30 Tage. Das Ziel ist der für 2026
@@ -98,6 +109,8 @@ die tatsächlich erreichbare Rate begrenzen.
 
 - `data/bnetza_cache.csv`: letzter heruntergeladener Stand von `url_b`
 - `data/projections.csv`: historisierte Projektionen, eine Zeile pro Lauf
+- `data/gie_storage.csv`: normalisierte GIE-AGSI+-API-Daten für EU und Deutschland
+- `data/eu_storage.csv`: vom Dashboard gelesene EU-Füllstandsserie aus GIE
 
 Typische Spalten in `projections.csv`:
 
@@ -141,7 +154,12 @@ Workflow: `.github/workflows/daily-gasspeicher-projection.yml`
 
 - Zeitplan: taeglich `9:00 UTC` (= `10:00 GMT+1`)
 - Fuehrt das Python-Skript aus
-- committed geaenderte `data/bnetza_cache.csv` und `data/projections.csv` automatisch ins Repository
+- ruft GIE AGSI+ mit dem Repository-Secret `GIE_API_KEY` ab
+- committed geaenderte `data/bnetza_cache.csv`, `data/projections.csv`, `data/gie_storage.csv` und `data/eu_storage.csv` automatisch ins Repository
+
+Der API-Schluessel wird lokal nur in `.secrets/gie_api_key` gelesen; der Ordner
+ist durch `.gitignore` vom Repository ausgeschlossen. In GitHub Actions wird
+derselbe Wert ausschließlich als Secret `GIE_API_KEY` injiziert.
 
 ## Hinweise
 

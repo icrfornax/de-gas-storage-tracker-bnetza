@@ -115,9 +115,10 @@
             </span>
           </div>
           <p class="eu-source-note">
-            Quelle: <a href="https://global-energy-flow.com/storage/trajectory/" target="_blank" rel="noreferrer">Global Energy Flow · EU storage trajectory</a>
-            mit GIE AGSI+ Aggregatdaten. Die gestrichelte Linie ist ein Szenario auf
-            Basis der verfügbaren Messpunkte im letzten 30-Tage-Fenster, keine Garantie.
+            Primärquelle: <a href="https://agsi.gie.eu/" target="_blank" rel="noreferrer">GIE AGSI+ API</a>
+            (direkter Abruf, API v013; <a href="https://www.gie.eu/transparency-platform/GIE_API_documentation_v013.pdf" target="_blank" rel="noreferrer">Dokumentation</a>).
+            Kontext und Trajektorie: <a href="https://global-energy-flow.com/storage/trajectory/" target="_blank" rel="noreferrer">Global Energy Flow</a>.
+            Die gestrichelte Linie ist ein Szenario auf Basis der Messpunkte im letzten 30-Tage-Fenster, keine Garantie.
           </p>
         </div>
       </section>
@@ -187,12 +188,13 @@
 
       <section class="source-section" aria-label="Datenquellen">
         <p>
-          Quelle: Bundesnetzagentur CSV-Export, archiviert in
+          Quellen: <a href="https://www.bundesnetzagentur.de/" target="_blank" rel="noreferrer">Bundesnetzagentur</a> CSV-Export, archiviert in
           <code>data/bnetza_cache.csv</code>. Projektionen und Laufhistorie:
           <code>data/projections.csv</code>. EU-Punktdaten:
-          <code>data/eu_storage.csv</code>. Technischer Einspeicher-Benchmark:
+          <code>data/eu_storage.csv</code> (direkter <a href="https://agsi.gie.eu/" target="_blank" rel="noreferrer">GIE AGSI+ API</a>-Abruf, v013; normalisierte Rohdaten in
+          <code>data/gie_storage.csv</code>). Technischer Einspeicher-Benchmark:
           <code>data/de_storage_capacity.json</code> ·
-          <a href="https://www.gie.eu/transparency-platform/GIE_API_documentation_v005.pdf" target="_blank" rel="noreferrer">GIE AGSI+ API-Dokumentation</a>.
+          <a href="https://www.gie.eu/transparency-platform/GIE_API_documentation_v013.pdf" target="_blank" rel="noreferrer">GIE AGSI+ API-Dokumentation v013</a>.
         </p>
         <p id="load-status">Lade Projektionen...</p>
       </section>

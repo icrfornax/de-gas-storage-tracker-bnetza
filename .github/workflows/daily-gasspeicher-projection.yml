@@ -36,7 +36,15 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Smoke-check projection script
-        run: python -m py_compile scripts/2026_gasspeicher_deutschland.py
+        run: |
+          python -m py_compile \
+            scripts/2026_gasspeicher_deutschland.py \
+            scripts/update_gie_storage.py
+
+      - name: Update GIE AGSI+ data
+        env:
+          GIE_API_KEY: ${{ secrets.GIE_API_KEY }}
+        run: python scripts/update_gie_storage.py
 
       - name: Run projection script
         run: python scripts/2026_gasspeicher_deutschland.py
@@ -46,7 +54,7 @@ jobs:
 
       - name: Commit data updates
         run: |
-          git add data/bnetza_cache.csv data/projections.csv README.md
+          git add data/bnetza_cache.csv data/projections.csv data/gie_storage.csv data/eu_storage.csv README.md
           if git diff --cached --quiet; then
             echo "No changes detected."
             exit 0

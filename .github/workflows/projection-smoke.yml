@@ -10,6 +10,8 @@ on:
       - "styles.css"
       - "dashboard.js"
       - "data/projections.csv"
+      - "data/eu_storage.csv"
+      - "data/gie_storage.csv"
       - "requirements.txt"
       - ".github/workflows/daily-gasspeicher-projection.yml"
       - ".github/workflows/pages.yml"
@@ -49,7 +51,8 @@ jobs:
           python -m py_compile \
             scripts/2026_gasspeicher_deutschland.py \
             scripts/projection_status.py \
-            scripts/validate_dashboard.py
+            scripts/validate_dashboard.py \
+            scripts/update_gie_storage.py
 
       - name: Check dashboard JavaScript syntax
         run: node --check dashboard.js
