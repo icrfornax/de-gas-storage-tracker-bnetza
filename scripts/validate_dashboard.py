@@ -52,6 +52,13 @@ def main() -> int:
         'id="de-chart"',
         "GIE AGSI+ API-Dokumentation v013",
         "Global Energy Flow",
+        "80% für Porenspeicher, 45% für Kavernenspeicher",
+        "EU empfiehlt 90%",
+        "BJNR0820A0025.html",
+        "OJ:L_202501733",
+        "https://github.com/volzinnovation/de-gas-storage-tracker-bnetza",
+        "Open Source ©",
+        "https://www.raphaelvolz.de",
     ):
         if expected not in index_html:
             raise SystemExit(f"index.html does not reference {expected!r}")
