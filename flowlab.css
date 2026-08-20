@@ -1,0 +1,693 @@
+/* ===========================================================================
+   Flussbilanz-Labor (flow-lab.js) — an styles.css anhaengen.
+   Nutzt die vorhandenen Tokens; ergaenzt nur die beiden Fluss-Farben.
+   =========================================================================== */
+
+:root {
+  --flow-fill: #6e7bd9;
+  --flow-in: var(--accent);
+  --flow-out: var(--warn);
+}
+
+.flow-section {
+  padding-top: 10px;
+}
+
+.flow-panel {
+  overflow: hidden;
+  border: 1px solid rgba(110, 123, 217, 0.35);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 78% 4%, rgba(110, 123, 217, 0.14), transparent 28rem),
+    var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+/* --------------------------------------------------------------- Kennzahlen */
+
+.flow-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 30px;
+  padding: 26px 30px 14px;
+}
+
+.flow-metric {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+}
+
+.flow-metric > span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.flow-metric strong {
+  color: var(--flow-fill);
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.flow-metric-target strong {
+  color: var(--ok);
+}
+
+/* Die Netto-Bilanz traegt eine Einheit und braucht darum weniger Schriftgroesse. */
+.flow-metric-compact strong {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.flow-metric small {
+  min-height: 1.25rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.flow-metric small[data-tone="ok"] {
+  color: var(--ok);
+}
+
+.flow-metric small[data-tone="warn"] {
+  color: var(--warn);
+}
+
+.flow-key {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 7px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.flow-key-fill { background: var(--flow-fill); }
+.flow-key-in { background: var(--flow-in); }
+.flow-key-out { background: var(--flow-out); }
+.flow-key-target { background: var(--ok); }
+
+/* ------------------------------------------- Buehne: Zufluss | Speicher | Entnahme */
+
+.flow-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(220px, 300px);
+  gap: 18px;
+  padding: 8px 30px 4px;
+  align-items: center;
+}
+
+#flow-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.flow-path {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.28;
+}
+
+.flow-path.is-idle {
+  stroke-width: 1;
+  opacity: 0.12;
+}
+
+.flow-path-in { stroke: var(--flow-in); }
+.flow-path-out { stroke: var(--flow-out); }
+
+.flow-dash {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1 18;
+  animation: flow-move 1.2s linear infinite;
+}
+
+.flow-dash-in { stroke: var(--flow-in); }
+.flow-dash-out { stroke: var(--flow-out); }
+
+@keyframes flow-move {
+  to { stroke-dashoffset: -19; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-dash { animation: none; }
+}
+
+/* ------------------------------------------------------------------ Regler */
+
+.flow-column {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+
+.flow-column-head {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.flow-column-out .flow-column-head {
+  text-align: right;
+}
+
+.flow-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.flow-card-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.flow-card label {
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.flow-card-value {
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.flow-card small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.flow-panel input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  margin: 2px 0 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.flow-panel input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.flow-panel input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.flow-panel input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border: 2px solid var(--panel-strong);
+  border-radius: 50%;
+  background: var(--thumb, var(--flow-fill));
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+.flow-panel input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--panel-strong);
+  border-radius: 50%;
+  background: var(--thumb, var(--flow-fill));
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+.flow-panel input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+.flow-column-in input[type="range"] { --thumb: var(--flow-in); }
+.flow-column-out input[type="range"] { --thumb: var(--flow-out); }
+
+/* -------------------------------------------------------------- Gasflasche */
+
+.flow-bottle-wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.flow-bottle-wrap svg {
+  display: block;
+  width: min(100%, 300px);
+  height: auto;
+}
+
+.flow-bottle-outline {
+  fill: var(--panel);
+  stroke: var(--norm-line, #66707e);
+  stroke-width: 2.5;
+}
+
+.flow-bottle-metal {
+  fill: #66707e;
+  opacity: 0.8;
+}
+
+.flow-bottle-surface {
+  fill: #aeb6f0;
+}
+
+.flow-tick {
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.flow-tick-label {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.flow-bottle-target {
+  stroke: var(--ok);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+}
+
+.flow-bottle-target-label {
+  fill: var(--ok);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.flow-bottle-norm {
+  stroke: #66707e;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+.flow-bottle-norm-label {
+  fill: #66707e;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.flow-bottle-value {
+  fill: var(--ink);
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  /* Halo, damit der Wert auf Fuellung und Hintergrund gleich gut lesbar bleibt. */
+  paint-order: stroke;
+  stroke: var(--panel-strong);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.flow-bottle-caption {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------- Zeitachse */
+
+.flow-timeline {
+  padding: 4px 30px 2px;
+  border-top: 1px solid var(--line);
+}
+
+.flow-timeline-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0 2px;
+}
+
+.flow-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  color: var(--panel-strong);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.flow-button:hover {
+  transform: translateY(-2px);
+}
+
+.flow-button-ghost {
+  width: auto;
+  min-width: 96px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.flow-day {
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-day small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flow-timeline-legend {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------ Szenario-Umschalter */
+
+.flow-scenarios {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+.flow-chip {
+  padding: 0 15px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.flow-chip:hover {
+  color: var(--ink);
+}
+
+.flow-chip[aria-pressed="true"] {
+  background: var(--accent-strong);
+  color: var(--panel-strong);
+}
+
+.flow-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.flow-scenario-note {
+  margin: 10px 0 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.flow-scenario-note strong {
+  color: var(--ink);
+}
+
+.flow-axis-wrap {
+  position: relative;
+}
+
+.flow-axis-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+#flow-scrub {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+}
+
+.flow-axis-week {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.flow-axis-month {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.flow-axis-month.is-target {
+  stroke: var(--ok);
+}
+
+.flow-axis-label {
+  fill: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.flow-axis-target {
+  stroke: var(--ok);
+  stroke-width: 1.5;
+  stroke-dasharray: 7 6;
+  opacity: 0.85;
+}
+
+.flow-axis-target-text {
+  fill: var(--ok);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.flow-axis-curve {
+  fill: none;
+  stroke: var(--flow-fill);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flow-axis-cursor {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.flow-axis-dot {
+  fill: var(--flow-fill);
+  stroke: var(--panel-strong);
+  stroke-width: 2.5;
+}
+
+/* ------------------------------------------- Fuss: Bedarf und Temperatur */
+
+.flow-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+  gap: 20px 40px;
+  align-items: start;
+  padding: 16px 30px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.flow-foot > div > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.flow-required strong {
+  color: var(--flow-in);
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.flow-required strong[data-tone="warn"] { color: var(--warn); }
+.flow-required strong[data-tone="ok"] { color: var(--ok); }
+
+.flow-required p,
+.flow-temperature p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.flow-temperature-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.flow-temperature-row strong {
+  min-width: 4.6ch;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  text-align: right;
+}
+
+.flow-temperature-row input[type="range"] {
+  flex: 1;
+  --thumb: var(--flow-out);
+}
+
+.flow-temperature-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.flow-source-note {
+  padding: 0 30px 24px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.flow-source-note a {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.flow-source-note strong {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ Mobil */
+
+@media (max-width: 900px) {
+  .flow-stage {
+    grid-template-columns: 1fr;
+    padding: 8px 18px 4px;
+  }
+
+  #flow-connectors {
+    display: none;
+  }
+
+  .flow-bottle-wrap {
+    order: -1;
+  }
+
+  .flow-column-out .flow-column-head {
+    text-align: left;
+  }
+
+  .flow-metrics {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 22px 18px 10px;
+  }
+
+  .flow-timeline,
+  .flow-foot,
+  .flow-source-note {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .flow-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-timeline-legend {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Die Zeitachse behaelt ihre Proportionen und scrollt in ihrem eigenen
+     Container, statt auf unleserliche Beschriftungen zusammenzuschrumpfen. */
+  .flow-axis-wrap {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .flow-axis-wrap svg,
+  #flow-scrub {
+    min-width: 620px;
+  }
+}
+
+/* ----------------------------------- Geisterlinie: lineare Fortschreibung */
+
+/* Zeigt dieselbe Extrapolation wie das Cockpit-Chart darueber, damit die
+   Abweichung der Simulation sichtbar wird statt zu verwirren. */
+.flow-axis-linear {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 5 6;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+.flow-axis-linear-label {
+  fill: var(--muted);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.flow-key-linear {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed var(--muted);
+  border-radius: 0;
+  background: none;
+  vertical-align: 3px;
+}
