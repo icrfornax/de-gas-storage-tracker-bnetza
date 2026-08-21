@@ -861,3 +861,44 @@
   padding: 0 12px;
   font-size: 0.8rem;
 }
+
+/* --------------------------------- Knopfleiste ohne Szenarien, mit Gasjahren */
+
+.flow-refyear-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flow-timeline-controls .flow-scenarios {
+  flex-wrap: wrap;
+}
+
+.flow-foot-single {
+  grid-template-columns: 1fr;
+}
+
+.flow-download {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 14px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.flow-download span {
+  flex: 1 1 320px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.flow-download .flow-button-ghost {
+  flex: none;
+}

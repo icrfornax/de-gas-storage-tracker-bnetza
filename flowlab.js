@@ -77,155 +77,13 @@
   };
   const DWD_NORM_C = 1.4;
 
-  /**
-   * Szenarien. Der Verbrauchsfaktor folgt bewusst der Konvention, die das
-   * Dashboard schon benutzt: ±20 % auf die Entnahme, wie in den Spalten
-   * optimistic_20pct_lower_withdrawal_* / pessimistic_20pct_higher_withdrawal_*
-   * von data/projections.csv. Der Zufluss bleibt dabei unberuehrt — er ist der
-   * Regler, mit dem der Nutzer antwortet.
-   */
-  const SCENARIOS = {
-    measured: { demand: 1 },
-    optimistic: { demand: 0.8 },
-    pessimistic: { demand: 1.2 },
-  };
-
-  /**
-   * Belege pro Regler. Jeder Eintrag sagt, woher der Startwert kommt und was
-   * das Reglermaximum bedeutet. Wo keine amtliche Zahl existiert, steht das
-   * ausdruecklich dabei — geraten wird nichts.
-   */
-  const SOURCES = {
-    pipeline: {
-      titel: "Pipeline-Importe",
-      aktuell:
-        "Startwert: 88 % des Zuflusses am Datenstand. Der Anteil stammt aus den " +
-        "Importmengen 2024 — 865 TWh insgesamt, davon 68 TWh über deutsche " +
-        "LNG-Terminals. Der Rest kam per Pipeline, überwiegend aus Norwegen (48 %), " +
-        "den Niederlanden (25 %) und Belgien (18 %).",
-      maximum:
-        "3.000 GWh/Tag. Im Jahresmittel 2024 lagen die Pipeline-Importe bei rund " +
-        "2.180 GWh/Tag. Höher käme man nur bei durchgehender Vollauslastung der " +
-        "Grenzübergangspunkte. <strong>Eine amtliche Gesamtkapazität aller deutschen " +
-        "Einspeisepunkte ist nicht veröffentlicht</strong> — diese Obergrenze ist " +
-        "deshalb eine Modellgrenze, kein Messwert.",
-      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
-    },
-    lng: {
-      titel: "LNG-Terminals",
-      aktuell:
-        "Startwert: 7,5 % des Zuflusses. 2024 kamen 68 TWh über die deutschen " +
-        "LNG-Terminals — 8 % aller Importe, im Jahresmittel rund 186 GWh/Tag.",
-      maximum:
-        "400 GWh/Tag. Die drei betriebsbereiten Terminals der bundeseigenen DET — " +
-        "Wilhelmshaven 1 (4,8), Wilhelmshaven 2 (4,3) und Brunsbüttel " +
-        "(4,0 Mrd. m³/Jahr) — ergeben zusammen 13,1 Mrd. m³/Jahr, also etwa " +
-        "380 GWh/Tag bei lückenloser Anlandung. 2024 wurde davon knapp die Hälfte " +
-        "genutzt. Stade und Mukran sind hier nicht eingerechnet.",
-      quellen: [
-        ["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"],
-        ["Deutsche Energy Terminal, Terminals", "https://energy-terminal.de/en/terminals"],
-      ],
-    },
-    domestic: {
-      titel: "Inland & Biomethan",
-      aktuell:
-        "Startwert: 4,5 % des Zuflusses. Die heimische Erdgasförderung lag 2024 bei " +
-        "4,2 Mrd. m³ beziehungsweise 40,9 TWh und deckte 5,4 % des deutschen Bedarfs.",
-      maximum:
-        "200 GWh/Tag. Die Förderung allein entspricht rund 112 GWh/Tag und ist " +
-        "rückläufig. Der Abstand bis zum Maximum wäre zusätzliche " +
-        "Biomethan-Einspeisung — deren Ausbaupfad ist eine Modellannahme.",
-      quellen: [["BVEG, Jahresbericht 2024 — Erdgasförderung", "https://jahresbericht.bveg.de/erdgasfoerderung/"]],
-    },
-    households: {
-      titel: "Private Haushalte & Gewerbe",
-      aktuell:
-        "Startwert: gemessenes SLP-Jahresmittel des Referenz-Gasjahres " +
-        "(Trading Hub Europe). SLP steht für Standardlastprofil-Kunden — Haushalte " +
-        "und kleines Gewerbe. Über zwei Gasjahre sind das 40,0 % des Verbrauchs; " +
-        "die Bundesnetzagentur weist für 2024 39 % aus.",
-      maximum:
-        "2.000 GWh/Tag. Der Regler stellt das <strong>Jahresmittel</strong>; der " +
-        "Tagesverlauf kommt aus der Messung. Gemessen schwankt SLP zwischen Index " +
-        "0,22 im August und 2,18 im Januar — Faktor zehn zwischen Sommer und Winter.",
-      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
-    },
-    industry: {
-      titel: "Industrie",
-      aktuell:
-        "Startwert: 70 % des gemessenen RLM-Jahresmittels. RLM steht für " +
-        "registrierende Leistungsmessung — Industrie und Kraftwerke, von THE als ein " +
-        "Block gemessen. <strong>Die Trennung 70/30 zwischen Industrie und " +
-        "Stromerzeugung ist eine Modellannahme</strong>, keine gemessene Größe.",
-      maximum:
-        "2.200 GWh/Tag im Jahresmittel. Das entspräche einer Industrieproduktion " +
-        "deutlich über dem heutigen Niveau; der Industriebedarf ist seit 2021 " +
-        "gefallen, nicht gestiegen.",
-      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
-    },
-    power: {
-      titel: "Stromerzeugung",
-      aktuell:
-        "Startwert: 30 % des gemessenen RLM-Jahresmittels, kalibriert auf rund " +
-        "150 TWh Gas für Strom- und Wärmeerzeugung. <strong>Modellannahme</strong> — " +
-        "THE misst Industrie und Kraftwerke gemeinsam als RLM.",
-      maximum:
-        "900 GWh/Tag im Jahresmittel. Erreichbar nur, wenn Gaskraftwerke dauerhaft " +
-        "einen deutlich größeren Teil der Residuallast decken als heute.",
-      quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
-    },
-    ziel: {
-      titel: "Das 80-Prozent-Ziel",
-      aktuell:
-        "Die Projektion rechnet den eingestellten Zufluss bis zum 1. November fort. " +
-        "Voreingestellt ist der <strong>Ist-Zufluss</strong>: der Bedarf am Datenstand plus " +
-        "das gemessene 30-Tage-Einspeichertempo. Die grüne Linie daneben zeigt, wo der " +
-        "Speicher bei dem Zufluss läge, der das Ziel trägt.",
-      maximum:
-        "<strong>Vorsicht mit den 80 % als Rechtsvorgabe.</strong> Die deutsche " +
-        "Gasspeicherfüllstandsverordnung vom 05.05.2025 schreibt 80 % für Kavernenspeicher " +
-        "und vier süddeutsche Porenspeicher vor, aber nur 45 % für alle übrigen " +
-        "Porenspeicher. Der VKU rechnet daraus einen deutschen Gesamtdurchschnitt von rund " +
-        "70 %. Die EU-Verordnung nennt 90 % zum Beginn der Heizperiode, lässt aber " +
-        "Abweichungen von bis zu etwa 25 Prozentpunkten zu. Die 80 %-Linie in dieser Grafik " +
-        "ist deshalb eine <strong>Bezugsmarke, kein auf den Gesamtfüllstand anwendbarer " +
-        "Grenzwert</strong>.",
-      quellen: [
-        ["VKU zu den Füllstandszielen nach EU-Trilog", "https://www.vku.de/themen/energiewende/artikel/nach-eu-trilog-die-fuellstandsziele-der-deutschen-gasspeicherfuellstandsverordnung-bleiben/"],
-        ["stadt+werk: Neue Vorgaben für Gasspeicher", "https://www.stadt-und-werk.de/k21-meldungen/neue-vorgaben-fuer-gasspeicher/"],
-      ],
-    },
-    refyear: {
-      titel: "Referenz-Gasjahr",
-      aktuell:
-        "Der Tagesverbrauch stammt aus den aggregierten Allokationsdaten von " +
-        "Trading Hub Europe für das deutsche Marktgebiet — je Gastag, getrennt nach " +
-        "SLP (Haushalte und Gewerbe) und RLM (Industrie und Kraftwerke). Über zwei " +
-        "Gasjahre liegt das Verhältnis bei 40,0 % zu 60,0 % und bestätigt damit " +
-        "unabhängig die 39 % zu 61 % der Bundesnetzagentur.",
-      maximum:
-        "Die Auswahl umfasst die Gasjahre, für die Messwerte vorliegen. " +
-        "<strong>Ein Winter unterhalb der DWD-Norm von +1,4 °C ist nicht darunter</strong> — " +
-        "seit Beginn der THE-Veröffentlichung 2018 war jeder deutsche Winter mild bis " +
-        "normal. Ein echter Kältewinter lässt sich damit nicht aus Messwerten " +
-        "nachstellen; dafür ist das Szenario „Pessimistisch\" da, das das Niveau um " +
-        "20 % anhebt.",
-      quellen: [
-        ["Trading Hub Europe, Aggregierte Verbrauchsdaten", "https://www.tradinghub.eu/de-de/Ver%C3%B6ffentlichungen/Transparenz/Aggregierte-Verbrauchsdaten"],
-        ["DWD, Gebietsmittel Winter Deutschland (CDC)", "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt"],
-      ],
-    },
-  };
-
   // Reglerbereiche in GWh/Tag; Temperatur in °C.
+  // Nur der Zufluss ist noch einstellbar. Die Entnahme kommt vollstaendig aus
+  // den gemessenen Tageswerten des gewaehlten Gasjahres.
   const RANGES = {
     pipeline: { min: 0, max: 3000, step: 10 },
     lng: { min: 0, max: 400, step: 5 },
     domestic: { min: 0, max: 200, step: 5 },
-    households: { min: 0, max: 2000, step: 10 },
-    industry: { min: 0, max: 2200, step: 10 },
-    power: { min: 0, max: 900, step: 10 },
   };
 
   const state = {
@@ -252,7 +110,6 @@
     consumption: new Map(),   // Gasjahr -> Map("MM-TT" -> { slp, rlm })
     refYears: [],
     refYear: null,
-    scenario: "measured",
   };
 
   /* ------------------------------------------------------------ Hilfsfunktionen */
@@ -836,7 +693,6 @@
       `# Ausspeicherkapazitaet: ${state.withdrawalCapacity} GWh/Tag`,
       `# gemessenes 30-Tage-Tempo: ${state.measuredRate.toFixed(4)} pp/Tag`,
       `# Referenz-Gasjahr fuer den Verbrauch: ${state.refYear}/${String(state.refYear + 1).slice(2)}`,
-      `# Szenario: ${state.scenario}`,
       `# eingestellter Zufluss: ${zufluss.toFixed(1)} GWh/Tag ` +
         `(Pipeline ${state.supply.pipeline.toFixed(1)}, LNG ${state.supply.lng.toFixed(1)}, ` +
         `Inland ${state.supply.domestic.toFixed(1)})`,
@@ -903,7 +759,7 @@
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `flussbilanz_${state.startDate}_${state.scenario}_${state.refYear}.csv`;
+    link.download = `flussbilanz_${state.startDate}_gasjahr${state.refYear}.csv`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -916,9 +772,6 @@
     ["flow-slider-pipeline", "supply", "pipeline"],
     ["flow-slider-lng", "supply", "lng"],
     ["flow-slider-domestic", "supply", "domestic"],
-    ["flow-slider-households", "demand", "households"],
-    ["flow-slider-industry", "demand", "industry"],
-    ["flow-slider-power", "demand", "power"],
   ];
 
   function applySliderPositions() {
@@ -974,9 +827,6 @@
       slider.addEventListener("input", (event) => {
         stopPlayback();
         state[group][key] = number(event.target.value) ?? 0;
-        // Der Zufluss ist die Antwort auf ein Szenario, nicht Teil davon —
-        // nur Entnahme und Temperatur machen daraus eine eigene Einstellung.
-        if (group === "demand") state.scenario = "custom";
         update();
       });
     });
@@ -986,7 +836,7 @@
       if (chip) {
         stopPlayback();
         state.refYear = Number(chip.dataset.refyear);
-        applyScenario(state.scenario === "custom" ? "measured" : state.scenario);
+        seedFromData();
         applySliderPositions();
         update();
       }
@@ -1003,18 +853,10 @@
     });
 
     el("flow-play")?.addEventListener("click", togglePlayback);
-    document.querySelectorAll("[data-scenario]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        stopPlayback();
-        applyScenario(chip.dataset.scenario);
-        applySliderPositions();
-        update();
-      });
-    });
     el("flow-csv")?.addEventListener("click", ladeCsvHerunter);
-    el("flow-target")?.addEventListener("click", () => {
+    el("flow-reset")?.addEventListener("click", () => {
       stopPlayback();
-      applyRequiredSupply();
+      seedFromData();
       applySliderPositions();
       update();
     });
@@ -1204,23 +1046,7 @@
     };
   }
 
-  /** Szenario setzen: von den Messwerten aus, dann Verbrauch und Winter anpassen. */
-  function applyScenario(key) {
-    const scenario = SCENARIOS[key];
-    if (!scenario) return;
-    // Zufluss beibehalten, sonst zeigte jedes Szenario wieder exakt 80 % —
-    // der Vergleich zwischen den Szenarien waere damit unsichtbar.
-    const zufluss = state.scenario === "measured" || key === "measured"
-      ? null
-      : { ...state.supply };
-    seedFromData();
-    if (zufluss) state.supply = zufluss;
-    DEMAND_KEYS.forEach((sector) => {
-      state.demand[sector] *= scenario.demand;
-    });
-    state.scenario = key;
-  }
-
+  /** Beschreibt das gewaehlte Referenzjahr unter der Knopfleiste. */
   function scenarioText() {
     if (!state.refYears.length) {
       return "<strong>Die Tagesreihe des Verbrauchs fehlt.</strong> Erwartet wird " +
@@ -1229,30 +1055,19 @@
         "die Projektion ist entsprechend wertlos.";
     }
     const jahr = `${state.refYear}/${String(state.refYear + 1).slice(2)}`;
-    const temp = DWD_WINTER[(state.refYear ?? 0) + 1];
+    const temp = DWD_WINTER[state.refYear + 1];
     const winter = temp === undefined
       ? ""
-      : ` Der Winter dieses Gasjahres lag im DWD-Mittel bei ${nf1.format(temp).replace("-", "−")} °C ` +
+      : ` Der Winter lag im DWD-Mittel bei ${nf1.format(temp).replace("-", "−")} °C ` +
         `(Norm 1991–2020: ${nf1.format(DWD_NORM_C)} °C).`;
-    if (state.scenario === "measured") {
-      return `<strong>Messwerte</strong> — Tagesverbrauch wie im Gasjahr ${jahr} gemessen.${winter}`;
-    }
-    if (state.scenario === "optimistic") {
-      return `<strong>Optimistisch</strong> — Verbrauchsniveau 20 % unter Gasjahr ${jahr}, ` +
-        `Tagesform aus der Messung.${winter}`;
-    }
-    if (state.scenario === "pessimistic") {
-      return `<strong>Pessimistisch</strong> — Verbrauchsniveau 20 % über Gasjahr ${jahr}, ` +
-        `Tagesform aus der Messung.${winter}`;
-    }
-    return `<strong>Eigene Einstellung</strong> — Entnahme von Hand verändert, ` +
-      `Tagesform weiterhin aus Gasjahr ${jahr}.${winter}`;
+    return `<strong>Gasjahr ${jahr}</strong> — jeder Simulationstag nimmt den gemessenen ` +
+      `Verbrauch des gleichen Kalendertags aus diesem Jahr. Das Wetter steckt damit in ` +
+      `den Daten, es wird nicht modelliert.${winter}`;
   }
 
   function renderScenario() {
-    Object.keys(SCENARIOS).forEach((key) => {
-      const chip = document.querySelector(`[data-scenario="${key}"]`);
-      if (chip) chip.setAttribute("aria-pressed", String(state.scenario === key));
+    document.querySelectorAll("[data-refyear]").forEach((chip) => {
+      chip.setAttribute("aria-pressed", String(Number(chip.dataset.refyear) === state.refYear));
     });
     const note = el("flow-scenario-note");
     if (note) note.innerHTML = scenarioText();
@@ -1291,13 +1106,17 @@
         `und ${q("https://jahresbericht.bveg.de/erdgasfoerderung/", "BVEG")}; LNG-Kapazität: ` +
         `${q("https://energy-terminal.de/en/terminals", "Deutsche Energy Terminal")}; Wintertemperaturen: ` +
         `${q("https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt", "DWD")}. ` +
-        `<br><strong>Rechenweg:</strong> Bedarf je Tag = gemessener Wert des gleichen Kalendertags ` +
-        `im Referenz-Gasjahr, mit dem Reglerniveau skaliert. Netto = Zufluss − Bedarf, begrenzt auf ` +
-        `Ein- und Ausspeicherkapazität. Füllstand<sub>t+1</sub> = Füllstand<sub>t</sub> + Netto / ` +
+        `<br><strong>Rechenweg:</strong> Bedarf je Tag = gemessener Wert des gleichen ` +
+        `Kalendertags im Referenz-Gasjahr, unverändert übernommen. ` +
+        `Netto = Zufluss − Bedarf, begrenzt auf Ein- und Ausspeicherkapazität. ` +
+        `Füllstand<sub>t+1</sub> = Füllstand<sub>t</sub> + Netto / ` +
         `${nf0.format(Math.round(state.ppGwh))} GWh, gedeckelt auf 0–100 %. ` +
-        `Der Zufluss startet auf dem Niveau, das am 1. November 80 % trägt. ` +
-        `<strong>Als Annahme bleiben nur der Bezugsmix und die Trennung 70/30 zwischen Industrie ` +
-        `und Stromerzeugung</strong> — das <i>i</i> an jedem Regler nennt Herkunft und Grenzen.`
+        `Einstellbar ist nur der Zufluss; er startet auf dem gemessenen Ist-Niveau ` +
+        `(Bedarf am Datenstand plus das 30-Tage-Einspeichertempo). Die grüne Linie zeigt ` +
+        `daneben den Zufluss, der das 80-%-Ziel trüge. ` +
+        `<strong>Als Annahme bleiben nur der Bezugsmix und die Trennung 70/30 zwischen ` +
+        `Industrie und Stromerzeugung</strong> — das <i>i</i> an jedem Regler nennt Herkunft ` +
+        `und Grenzen.`
       : "Datendateien nicht erreichbar; die Simulation läuft mit hinterlegten Startwerten.";
 
   }
@@ -1428,7 +1247,6 @@
             <span class="flow-card-name"><label for="flow-slider-households">Haushalte &amp; Gewerbe</label><button class="flow-info" type="button" data-info="households" aria-label="Quelle und Maximum: Haushalte und Gewerbe">i</button></span>
             <span class="flow-card-value" id="flow-value-households">--</span>
           </div>
-          <input id="flow-slider-households" type="range" value="0" />
           <small><span id="flow-mean-households">–</span> · gemessen als SLP</small>
         </div>
 
@@ -1437,7 +1255,6 @@
             <span class="flow-card-name"><label for="flow-slider-industry">Industrie</label><button class="flow-info" type="button" data-info="industry" aria-label="Quelle und Maximum: Industrie">i</button></span>
             <span class="flow-card-value" id="flow-value-industry">--</span>
           </div>
-          <input id="flow-slider-industry" type="range" value="0" />
           <small><span id="flow-mean-industry">–</span> · 70 % des RLM</small>
         </div>
 
@@ -1446,7 +1263,6 @@
             <span class="flow-card-name"><label for="flow-slider-power">Stromerzeugung</label><button class="flow-info" type="button" data-info="power" aria-label="Quelle und Maximum: Stromerzeugung">i</button></span>
             <span class="flow-card-value" id="flow-value-power">--</span>
           </div>
-          <input id="flow-slider-power" type="range" value="0" />
           <small><span id="flow-mean-power">–</span> · 30 % des RLM</small>
         </div>
       </div>
@@ -1455,21 +1271,21 @@
     <div class="flow-timeline">
       <div class="flow-timeline-controls">
         <button id="flow-play" class="flow-button" type="button" aria-label="Simulation abspielen">▶</button>
-        <div class="flow-scenarios" role="group" aria-label="Szenario wählen">
-          <button class="flow-chip" type="button" data-scenario="measured" aria-pressed="true">↺ Messwerte</button>
-          <button class="flow-chip" type="button" data-scenario="optimistic" aria-pressed="false">Optimistisch</button>
-          <button class="flow-chip" type="button" data-scenario="pessimistic" aria-pressed="false">Pessimistisch</button>
-        </div>
-        <button id="flow-target" class="flow-button flow-button-ghost" type="button">Zufluss für 80%</button>
-        <button id="flow-csv" class="flow-button flow-button-ghost" type="button"
-                title="Tagestabelle der laufenden Simulation als CSV, mit allen Annahmen und Quellen im Kopf">↓ CSV</button>
+        <button id="flow-reset" class="flow-button flow-button-ghost" type="button"
+                title="Zufluss auf den gemessenen Ist-Wert zurücksetzen">↺ Zurücksetzen</button>
+        <p class="flow-refyear-label">
+          <i class="flow-key flow-key-out"></i>Referenz-Gasjahr
+          <button class="flow-info" type="button" data-info="refyear"
+                  aria-label="Quelle und Bedeutung: Referenz-Gasjahr">i</button>
+        </p>
+        <div class="flow-scenarios" id="flow-refyears" role="group" aria-label="Referenz-Gasjahr wählen"></div>
         <p class="flow-day"><small>Simulationstag</small><span id="flow-day-date">--</span></p>
       </div>
 
       <p class="flow-scenario-note" id="flow-scenario-note">Startwerte werden geladen …</p>
 
       <p class="flow-timeline-legend">
-        <i class="flow-key flow-key-fill"></i>Ist-Pfad, von den Reglern gesteuert ·
+        <i class="flow-key flow-key-fill"></i>Ist-Pfad, vom Zufluss gesteuert ·
         <i class="flow-key flow-key-goal"></i>Zielpfad für 80 % ·
         <i class="flow-key flow-key-linear"></i>lineare Fortschreibung ·
         <span id="flow-range">--</span>
@@ -1492,9 +1308,16 @@
         </svg>
         <input id="flow-scrub" type="range" value="0" aria-label="Simulationstag wählen" />
       </div>
+
+      <p class="flow-download">
+        <button id="flow-csv" class="flow-button flow-button-ghost" type="button">↓ Tagestabelle als CSV</button>
+        <span>Jeder Simulationstag mit Bedarf je Sektor, Zufluss, Netto-Bilanz, Füllstand und
+          Zielpfad. Im Dateikopf stehen alle Parameter, der Rechenweg und die Quellen —
+          damit Dritte die Annahmen ohne diese Seite nachprüfen können.</span>
+      </p>
     </div>
 
-    <div class="flow-foot">
+    <div class="flow-foot flow-foot-single">
       <div class="flow-required">
         <span><i class="flow-key flow-key-in"></i>Benötigter täglicher Zufluss bis 80% am 1. November</span>
         <p class="flow-required-row">
@@ -1502,18 +1325,6 @@
           <strong id="flow-required-gap" class="flow-required-gap">--</strong>
         </p>
         <p id="flow-required-detail">--</p>
-      </div>
-
-      <div class="flow-temperature flow-refyear">
-        <span><i class="flow-key flow-key-out"></i>Referenz-Gasjahr für den Verbrauch
-          <button class="flow-info" type="button" data-info="refyear"
-                  aria-label="Quelle und Bedeutung: Referenz-Gasjahr">i</button>
-        </span>
-        <div class="flow-scenarios" id="flow-refyears" role="group" aria-label="Referenz-Gasjahr wählen"></div>
-        <p><strong id="flow-value-refyear">—</strong></p>
-        <p>Jeder Simulationstag nimmt den gemessenen Verbrauch des gleichen Kalendertags
-          aus diesem Gasjahr (August bis Juli). Das Wetter steckt damit in den Daten —
-          es wird nicht modelliert.</p>
       </div>
     </div>
 
@@ -1582,7 +1393,7 @@
     try {
       setHorizon();
       renderRefYearChips();
-      applyScenario("measured");
+      seedFromData();
       renderBottleScale();
       renderAxisScale();
       renderLinearReference();
