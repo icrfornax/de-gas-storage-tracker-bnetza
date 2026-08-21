@@ -28,9 +28,10 @@ Die Antwort liefert je Gastag acht Mengen in kWh, getrennt nach Gasqualitaet
 
     Verbrauch [GWh] = (SLP + RLM) / 1e6
 
-Die Aufteilung SLP/RLM liegt ueber zwei Gasjahre bei 40,0 % zu 60,0 % und
-deckt sich damit mit der Bundesnetzagentur, die fuer 2024 39 % Haushalts- und
-Gewerbekunden gegenueber 61 % Industrie ausweist.
+Kontrolle gegen eine unabhaengige Quelle: fuer das Kalenderjahr 2024 ergibt
+die Reihe 838,3 TWh Verbrauch bei 39,1 % SLP-Anteil. Die Bundesnetzagentur
+nennt fuer dasselbe Jahr 844 TWh und 39 % Haushalts- und Gewerbekunden
+gegenueber 61 % Industrie. Zwei getrennte Messwege, 0,7 % Abstand.
 
 Ergebnis
 --------
@@ -38,7 +39,14 @@ data/de_consumption_daily.csv mit einer Zeile je Gastag:
     date, consumption_gwh, slp_gwh, rlm_gwh, status, source
 
 `status` uebernimmt die THE-Angabe (preliminary / final / corrected).
-Vorhandene Zeilen werden ueberschrieben, wenn THE korrigierte Werte liefert.
+Vorhandene Zeilen werden ueberschrieben, wenn THE korrigierte Werte liefert;
+--refresh-days (Vorgabe 45) legt fest, wie weit rueckwirkend erneut geholt
+wird. Das ist kein Selbstzweck: im Export 2021-08-01..2026-07-31 tragen 61 von
+1826 Gastagen den Status "corrected".
+
+Die Einheit steht in jedem Datensatz selbst (<Unit>kWh</Unit>) und wird bei
+jedem Abruf geprueft; ein abweichender Wert bricht den Lauf ab, statt still
+falsch zu rechnen.
 """
 
 from __future__ import annotations

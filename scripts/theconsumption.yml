@@ -1,0 +1,65 @@
+name: Daily THE Consumption
+
+# Holt den tagesgenauen deutschen Gasverbrauch von Trading Hub Europe und
+# schreibt ihn nach data/de_consumption_daily.csv. Bewusst ein eigener
+# Workflow statt eines Schritts in daily-gasspeicher-projection.yml: faellt
+# THE aus, bleibt die BNetzA-Projektion davon unberuehrt.
+#
+# Danach wird METHODIK.pdf neu gebaut. Das Dokument nennt den Datenstand und
+# rechnet alle Kennzahlen aus den Datendateien frisch — es darf deshalb nicht
+# aelter sein als die Daten, auf die es sich beruft.
+#
+# Laeuft nach dem GIE-Lauf, damit sich die beiden Commits nicht ins Gehege
+# kommen. Der Push auf main loest ueber data/** den Pages-Deploy aus.
+
+on:
+  schedule:
+    # 10:30 UTC == 11:30 GMT+1, eine gute Stunde nach dem GIE-Lauf.
+    - cron: "30 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: the-consumption
+  cancel-in-progress: false
+
+jobs:
+  consumption:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install reportlab
+
+      - name: Smoke-check scripts
+        run: |
+          python -m py_compile scripts/update_the_consumption.py
+          python -m py_compile scripts/build_methodik.py
+
+      - name: Update THE daily consumption
+        run: python scripts/update_the_consumption.py
+
+      - name: Rebuild methodology PDF
+        run: python scripts/build_methodik.py
+
+      - name: Commit data update
+        run: |
+          git add data/de_consumption_daily.csv METHODIK.pdf
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): update THE daily consumption ($(date -u +%F))"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          git push origin "HEAD:${BRANCH}"
