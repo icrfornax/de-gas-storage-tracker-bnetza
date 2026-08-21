@@ -731,6 +731,42 @@
   outline-offset: 2px;
 }
 
+/* Info-Knopf im SVG der Flasche. Gleiche Rolle wie der HTML-Knopf, aber
+   Fuellung statt Hintergrund — background/border greifen in SVG nicht. */
+.flow-info-svg {
+  cursor: help;
+}
+
+.flow-info-svg .flow-info-ring {
+  fill: transparent;
+  stroke: var(--ok);
+  stroke-width: 1.2;
+  transition: fill 0.15s ease;
+}
+
+.flow-info-svg .flow-info-glyph {
+  fill: var(--ok);
+  font-size: 10px;
+  font-weight: 900;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.flow-info-svg:hover .flow-info-ring,
+.flow-info-svg[aria-expanded="true"] .flow-info-ring {
+  fill: var(--ok);
+}
+
+.flow-info-svg:hover .flow-info-glyph,
+.flow-info-svg[aria-expanded="true"] .flow-info-glyph {
+  fill: var(--panel-strong);
+}
+
+.flow-info-svg:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .flow-temperature > span .flow-info {
   vertical-align: 1px;
   margin-left: 4px;

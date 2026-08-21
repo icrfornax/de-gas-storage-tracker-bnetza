@@ -237,7 +237,10 @@
         "Die Projektion rechnet den eingestellten Zufluss bis zum 1. November fort. " +
         "Voreingestellt ist der <strong>Ist-Zufluss</strong>: der gemessene Bedarf am " +
         "Datenstand plus das gemessene 30-Tage-Einspeichertempo. Die grüne Linie " +
-        "daneben zeigt, wo der Speicher bei dem Zufluss läge, der das Ziel trägt.",
+        "daneben zeigt, wo der Speicher bei dem Zufluss läge, der das Ziel trägt. " +
+        "Hinter dem 1. November läuft sie mit demselben Zufluss weiter — das ist " +
+        "keine Prognose, sondern zeigt nur, was aus einem vollen Speicher über den " +
+        "Winter würde.",
       maximum:
         "<strong>Vorsicht mit den 80 % als Rechtsvorgabe.</strong> Die deutsche " +
         "Gasspeicherfüllstandsverordnung vom 05.05.2025 schreibt 80 % für Kavernenspeicher " +
@@ -537,7 +540,17 @@
     const targetY = bottleY(TARGET_FILL);
     el("flow-bottle-target").setAttribute("y1", targetY);
     el("flow-bottle-target").setAttribute("y2", targetY);
-    el("flow-bottle-target-label").setAttribute("y", targetY - 9);
+    const targetLabel = el("flow-bottle-target-label");
+    targetLabel.setAttribute("y", targetY - 9);
+
+    // Der Knopf wandert mit der Ziellinie und haengt sich an das gemessene
+    // Textende — feste Koordinaten wuerden bei anderer Schrift verrutschen.
+    const info = el("flow-bottle-target-info");
+    if (info) {
+      let breite = 108;
+      try { breite = targetLabel.getComputedTextLength() || breite; } catch (error) { /* jsdom */ }
+      info.setAttribute("transform", `translate(${(64 + breite + 13).toFixed(1)},${(targetY - 13).toFixed(1)})`);
+    }
   }
 
   function renderBottle(fill) {
@@ -851,6 +864,19 @@
 
   let popoverFest = null;
   let popoverAusloeser = null;
+  // Zeitpunkt des letzten Scrollens. Beim Scrollen wandert die Seite unter dem
+  // ruhenden Zeiger weg und loest pointerover auf einem beliebigen Element aus.
+  // Ohne diese Schonfrist schloss sich das Popover schon nach 80 Pixeln,
+  // obwohl der Knopf noch vollstaendig im Bild stand.
+  let letzterScroll = 0;
+  const SCROLL_SCHONFRIST_MS = 500;
+
+  /** Steht der Ausloeser noch sichtbar im Fenster? */
+  function ausloeserImBild() {
+    if (!popoverAusloeser) return false;
+    const r = popoverAusloeser.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+  }
 
   function versteckeBeleg() {
     const pop = el("flow-source-popover");
@@ -917,6 +943,9 @@
       }
       if (popoverFest) return;
       if (event.target.closest?.(".flow-popover")) return;
+      // Kam das Ereignis vom Scrollen und nicht von einer echten Mausbewegung,
+      // bleibt das Popover stehen, solange sein Knopf sichtbar ist.
+      if (performance.now() - letzterScroll < SCROLL_SCHONFRIST_MS && ausloeserImBild()) return;
       versteckeBeleg();
     });
 
@@ -948,7 +977,10 @@
       popoverFest = null;
       versteckeBeleg();
     });
-    window.addEventListener("scroll", positioniereBeleg, { passive: true });
+    window.addEventListener("scroll", () => {
+      letzterScroll = performance.now();
+      positioniereBeleg();
+    }, { passive: true });
     window.addEventListener("resize", positioniereBeleg);
   }
 
@@ -1064,6 +1096,14 @@
     ["flow-slider-domestic", "supply", "domestic"],
   ];
 
+  /** Gerundete Reglerstellungen in den State zuruecklesen. */
+  function uebernehmeReglerwerte() {
+    SLIDERS.forEach(([id, group, key]) => {
+      const slider = el(id);
+      if (slider) state[group][key] = number(slider.value) ?? state[group][key];
+    });
+  }
+
   function applySliderPositions() {
     SLIDERS.forEach(([id, group, key]) => {
       const slider = el(id);
@@ -1148,6 +1188,10 @@
       stopPlayback();
       seedFromData();
       applySliderPositions();
+      // Die Regler rasten auf ihre Schrittweite. Ohne diesen Rueckweg stuende im
+      // State ein anderer Wert als unter dem Regler — beim naechsten Ziehen
+      // spraenge die Anzeige.
+      uebernehmeReglerwerte();
       update();
     });
 
@@ -1295,13 +1339,20 @@
     // Geteilt durch den Jahresgang-Faktor dieses Tages ergibt das Jahresniveau,
     // das die Regler stellen.
     const istTag0 = demandOn(0).total + state.measuredRate * state.ppGwh;
-    verteileZufluss(istTag0 / (inflowFactor(0) || 1));
+    verteileZufluss(istTag0 / (inflowFactor(0) || 1), SUPPLY_SHARES);
   }
 
-  /** Summe auf die drei Quellen verteilen, Mischung beibehalten. */
-  function verteileZufluss(summe) {
+  /**
+   * Summe auf die drei Quellen verteilen.
+   * Ohne `mischung` bleibt die eingestellte Aufteilung erhalten (Skalieren);
+   * mit `mischung` wird sie ersetzt — das braucht "Zuruecksetzen", sonst
+   * kaeme die Summe zwar zurueck, aber in der zuletzt gezogenen Aufteilung.
+   */
+  function verteileZufluss(summe, mischung) {
     const aktuell = supplyTotal();
-    const anteil = aktuell > 0
+    const anteil = mischung
+      ? mischung
+      : aktuell > 0
       ? {
           pipeline: state.supply.pipeline / aktuell,
           lng: state.supply.lng / aktuell,
@@ -1548,6 +1599,13 @@
 
           <line id="flow-bottle-target" class="flow-bottle-target" x1="62" y1="151" x2="228" y2="151"></line>
           <text id="flow-bottle-target-label" class="flow-bottle-target-label" x="64" y="142">80% · Ziel 1. Nov</text>
+          <g id="flow-bottle-target-info" class="flow-info flow-info-svg" data-info="ziel"
+             role="button" tabindex="0" transform="translate(180,138)"
+             aria-label="Quelle und Einordnung: die gesetzlichen Füllstandsvorgaben">
+            <circle class="flow-info-ring" cx="0" cy="0" r="7.5"></circle>
+            <text class="flow-info-glyph" x="0" y="0" text-anchor="middle"
+                  dominant-baseline="central">i</text>
+          </g>
 
           <text id="flow-bottle-value" class="flow-bottle-value" x="145" y="268" text-anchor="middle">--%</text>
           <text class="flow-bottle-caption" x="145" y="290" text-anchor="middle">Füllstand</text>
@@ -1601,7 +1659,7 @@
 
       <p class="flow-timeline-legend">
         <i class="flow-key flow-key-fill"></i>Ist-Pfad, vom Zufluss gesteuert ·
-        <i class="flow-key flow-key-goal"></i>Zielpfad für 80 % am 1. Nov, danach mit gleichem Zufluss weiter ·
+        <i class="flow-key flow-key-goal"></i>Zielpfad für 80 % am 1. Nov ·
         <i class="flow-key flow-key-linear"></i>lineare Fortschreibung ·
         <span id="flow-range">--</span>
       </p>
@@ -1716,6 +1774,9 @@
       bindControls();
       bindeBelege();
       applySliderPositions();
+      // Gleich beim Aufbau auf die Reglerraster einrasten, damit "Zuruecksetzen"
+      // exakt denselben Zustand herstellt wie der erste Seitenaufruf.
+      uebernehmeReglerwerte();
       renderSourceNote(loaded);
       update();
     } catch (error) {
