@@ -1004,6 +1004,12 @@
   }
 
   /**
+   * Jahresmittel des Tagesverbrauchs aus dem AGSI-Jahreswert in TWh.
+   * Nur noch Rueckfallebene, falls die THE-Tagesreihe fehlt.
+   */
+  const annualMeanDemand = () => (state.consumptionTwh * 1000) / 365;
+
+  /**
    * Regler auf den gemessenen Zustand setzen.
    *   Entnahme: Jahresmittel des Referenz-Gasjahres, SLP und RLM getrennt
    *             gemessen, RLM nach RLM_SPLIT auf Industrie und Strom verteilt.
@@ -1107,9 +1113,13 @@
   }
 
   function scenarioText() {
-    const jahr = state.refYear === null
-      ? "—"
-      : `${state.refYear}/${String(state.refYear + 1).slice(2)}`;
+    if (!state.refYears.length) {
+      return "<strong>Die Tagesreihe des Verbrauchs fehlt.</strong> Erwartet wird " +
+        "<code>data/de_consumption_daily.csv</code>. Ohne sie rechnet das Labor mit " +
+        "flachem Jahresmittel — der Jahresgang des Verbrauchs fehlt dann völlig, " +
+        "die Projektion ist entsprechend wertlos.";
+    }
+    const jahr = `${state.refYear}/${String(state.refYear + 1).slice(2)}`;
     const temp = DWD_WINTER[(state.refYear ?? 0) + 1];
     const winter = temp === undefined
       ? ""
@@ -1180,6 +1190,7 @@
         `<strong>Als Annahme bleiben nur der Bezugsmix und die Trennung 70/30 zwischen Industrie ` +
         `und Stromerzeugung</strong> — das <i>i</i> an jedem Regler nennt Herkunft und Grenzen.`
       : "Datendateien nicht erreichbar; die Simulation läuft mit hinterlegten Startwerten.";
+
   }
 
   /* ------------------------------------------------------------------ Markup */
@@ -1454,17 +1465,29 @@
       console.warn("Flow-Lab: Kapazitäts-Snapshot nicht verfügbar.", error);
     }
 
-    setHorizon();
-    renderRefYearChips();
-    applyScenario("measured");
-    renderBottleScale();
-    renderAxisScale();
-    renderLinearReference();
-    bindControls();
-    bindeBelege();
-    applySliderPositions();
-    renderSourceNote(loaded);
-    update();
+    try {
+      setHorizon();
+      renderRefYearChips();
+      applyScenario("measured");
+      renderBottleScale();
+      renderAxisScale();
+      renderLinearReference();
+      bindControls();
+      bindeBelege();
+      applySliderPositions();
+      renderSourceNote(loaded);
+      update();
+    } catch (error) {
+      // Lieber eine ehrliche Fehlermeldung als eine Grafik voller Striche.
+      console.error("Flow-Lab: Aufbau fehlgeschlagen.", error);
+      const notiz = el("flow-source-note");
+      if (notiz) {
+        notiz.innerHTML =
+          "<strong>Das Flussbilanz-Labor konnte nicht aufgebaut werden.</strong> " +
+          `Grund: ${String(error && error.message ? error.message : error)}. ` +
+          "Details stehen in der Browser-Konsole.";
+      }
+    }
   }
 
   if (document.readyState === "loading") {
