@@ -3,6 +3,12 @@ name: Deploy Dashboard to Pages
 # Der paths-Filter muss jede Datei nennen, die auf der Seite landet.
 # Fehlte hier flowlab.js, deployte ein Fix an der Grafik nicht — der Push
 # loeste keinen Lauf aus und niemand haette es gemerkt.
+#
+# workflow_run haengt zusaetzlich am THE-Lauf. Grund: Pushes, die ein Workflow
+# mit dem Standard-GITHUB_TOKEN macht, loesen KEINE weiteren Workflows aus
+# (GitHub verhindert so Endlosschleifen). Der taegliche Verbrauchs-Commit kam
+# deshalb ins Repository, aber nie auf die Seite. Der GIE-Lauf hat das Problem
+# nicht, weil er selbst deployt.
 on:
   push:
     branches: ["main"]
@@ -16,6 +22,9 @@ on:
       - "data/**"
       - "scripts/validate_dashboard.py"
       - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: ["Daily THE Consumption"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -29,13 +38,17 @@ concurrency:
 
 jobs:
   deploy:
+    # Nach einem gescheiterten THE-Lauf gibt es nichts Neues zu veroeffentlichen.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate static dashboard
         run: python scripts/validate_dashboard.py
