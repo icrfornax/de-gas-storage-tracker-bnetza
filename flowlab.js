@@ -28,7 +28,7 @@
   const TARGET_FILL = 80;
   const SEASON_END_MONTH_DAY = "03-31";
   const TREND_WINDOW_DAYS = 30;
-  const PLAYBACK_MS = 45;
+  const PLAYBACK_MS = 220;   // ~50 s fuer die ganze Heizperiode, vorher war es unlesbar schnell
 
   // Fallbacks, falls die Datendateien nicht erreichbar sind.
   const DEFAULTS = {
@@ -618,9 +618,14 @@
     el("flow-value-pipeline").textContent = gwh(state.supply.pipeline);
     el("flow-value-lng").textContent = gwh(state.supply.lng);
     el("flow-value-domestic").textContent = gwh(state.supply.domestic);
-    el("flow-value-households").textContent = gwh(state.demand.households);
-    el("flow-value-industry").textContent = gwh(state.demand.industry);
-    el("flow-value-power").textContent = gwh(state.demand.power);
+    // Die Entnahme aendert sich taeglich — die Karte zeigt den Wert des
+    // Simulationstages, das Jahresmittel darunter ist, was der Regler stellt.
+    const heute = demandOn(state.day);
+    DEMAND_KEYS.forEach((sektor) => {
+      el(`flow-value-${sektor}`).textContent = gwh(heute[sektor]);
+      const mittel = el(`flow-mean-${sektor}`);
+      if (mittel) mittel.textContent = `Jahresmittel ${gwh(state.demand[sektor])}`;
+    });
     const refLabel = el("flow-value-refyear");
     if (refLabel) refLabel.textContent = refYearLabel(state.refYear);
     el("flow-day-date").textContent = dateText(dayIso(state.day));
@@ -660,9 +665,11 @@
     const detail = el("flow-required-detail");
     const required = requiredSupply(fills);
 
+    const luecke0 = el("flow-required-gap");
     if (!required) {
       value.dataset.tone = "";
       value.textContent = "—";
+      if (luecke0) { luecke0.textContent = ""; luecke0.dataset.tone = ""; }
       detail.textContent =
         "Das Einspeicherfenster ist geschlossen; ab hier zählt die Winterentnahme.";
       return;
@@ -670,6 +677,7 @@
     if (required.met) {
       value.dataset.tone = "ok";
       value.textContent = "Ziel erreicht";
+      if (luecke0) { luecke0.textContent = ""; luecke0.dataset.tone = ""; }
       detail.textContent = `Der simulierte Füllstand liegt am ${dateText(dayIso(state.day))} bereits bei mindestens 80%.`;
       return;
     }
@@ -678,9 +686,16 @@
     const gap = required.gwh - current;
     value.dataset.tone = gap > 0 ? "warn" : "ok";
     value.textContent = `≈${gwh(required.gwh)}`;
+
+    const luecke = el("flow-required-gap");
+    if (luecke) {
+      luecke.dataset.tone = gap > 0 ? "warn" : "ok";
+      luecke.textContent = gap > 0
+        ? `Lücke ${gwh(gap)}`
+        : `Überschuss ${gwh(-gap)}`;
+    }
     detail.textContent =
-      `entspricht +${nf2.format(required.pp)} pp/Tag · eingestellt: ${nf0.format(Math.round(current))} GWh/Tag · ` +
-      (gap > 0 ? `Lücke ${nf0.format(Math.round(gap))} GWh/Tag` : "reicht aus") +
+      `entspricht +${nf2.format(required.pp)} pp/Tag · eingestellt: ${nf0.format(Math.round(current))} GWh/Tag` +
       (required.feasible ? "" : " · über der technischen Einspeicherkapazität");
   }
 
@@ -802,6 +817,99 @@
     window.addEventListener("resize", positioniereBeleg);
   }
 
+  /* ------------------------------------------------------------- CSV-Export */
+
+  /**
+   * Erzeugt die Tagestabelle der laufenden Simulation zum Nachrechnen.
+   * Der Kommentarkopf haelt alle Annahmen und Quellen fest, damit die Datei
+   * ohne diese Seite pruefbar bleibt.
+   */
+  function buildCsv() {
+    const zufluss = supplyTotal();
+    const ziel = zielZufluss();
+    const kopf = [
+      "# Flussbilanz-Labor — Tagestabelle der Simulation",
+      `# erzeugt am: ${dateText(isoDate(new Date()))}`,
+      `# Datenstand GIE AGSI+: ${state.startDate}, Fuellstand ${state.startFill} %`,
+      `# Arbeitsgasvolumen: ${(state.ppGwh * 100) / 1000} TWh, 1 Prozentpunkt = ${state.ppGwh.toFixed(2)} GWh`,
+      `# Einspeicherkapazitaet: ${state.injectionCapacity} GWh/Tag`,
+      `# Ausspeicherkapazitaet: ${state.withdrawalCapacity} GWh/Tag`,
+      `# gemessenes 30-Tage-Tempo: ${state.measuredRate.toFixed(4)} pp/Tag`,
+      `# Referenz-Gasjahr fuer den Verbrauch: ${state.refYear}/${String(state.refYear + 1).slice(2)}`,
+      `# Szenario: ${state.scenario}`,
+      `# eingestellter Zufluss: ${zufluss.toFixed(1)} GWh/Tag ` +
+        `(Pipeline ${state.supply.pipeline.toFixed(1)}, LNG ${state.supply.lng.toFixed(1)}, ` +
+        `Inland ${state.supply.domestic.toFixed(1)})`,
+      `# Zielpfad-Zufluss fuer 80 % am ${state.targetDate}: ${ziel.toFixed(1)} GWh/Tag`,
+      `# Reglerniveau Jahresmittel: Haushalte ${state.demand.households.toFixed(1)}, ` +
+        `Industrie ${state.demand.industry.toFixed(1)}, Strom ${state.demand.power.toFixed(1)} GWh/Tag`,
+      "#",
+      "# Rechenweg je Tag:",
+      "#   bedarf = SLP(Kalendertag im Referenzjahr) x Regler_HH / SLP-Jahresmittel",
+      "#          + RLM(...) x 0,70 x Regler_IND / (RLM-Jahresmittel x 0,70)",
+      "#          + RLM(...) x 0,30 x Regler_STROM / (RLM-Jahresmittel x 0,30)",
+      "#   netto  = min(Einspeicherkap., max(-Ausspeicherkap., zufluss - bedarf))",
+      "#   fuellstand(t+1) = fuellstand(t) + netto / GWh-je-Prozentpunkt, gedeckelt 0..100",
+      "#",
+      "# Quellen:",
+      "#   Verbrauch: Trading Hub Europe, AggregatedConsumptionData (SLP + RLM)",
+      "#   Speicher:  GIE AGSI+ API v013",
+      "#   Bezugsmix: Bundesnetzagentur, Gasversorgung 2024; BVEG Jahresbericht 2024",
+      "#   LNG:       Deutsche Energy Terminal",
+      "#   Winter:    DWD Gebietsmittel Dez-Feb (CDC)",
+      "#",
+      "# Annahme, die keine Messung ist: die Trennung 70/30 zwischen Industrie und",
+      "# Stromerzeugung. THE misst beide gemeinsam als RLM.",
+    ].join("\n");
+
+    const spalten = [
+      "datum", "tag", "referenztag",
+      "bedarf_haushalte_gwh", "bedarf_industrie_gwh", "bedarf_strom_gwh", "bedarf_gesamt_gwh",
+      "zufluss_gwh", "netto_gwh", "fuellstand_pct", "zielpfad_fuellstand_pct",
+    ].join(",");
+
+    const zeilen = [];
+    let zielFill = state.startFill;
+    for (let index = 0; index <= state.days; index += 1) {
+      const bedarf = demandOn(index);
+      const netto = index < state.days ? netOn(index) : 0;
+      if (index > 0) {
+        const zielNetto = clamp(
+          ziel - demandOn(index - 1).total,
+          -state.withdrawalCapacity,
+          state.injectionCapacity,
+        );
+        zielFill = clamp(zielFill + zielNetto / state.ppGwh, 0, 100);
+      }
+      zeilen.push([
+        dayIso(index),
+        index,
+        monthDay(dayDate(index)),
+        bedarf.households.toFixed(1),
+        bedarf.industry.toFixed(1),
+        bedarf.power.toFixed(1),
+        bedarf.total.toFixed(1),
+        zufluss.toFixed(1),
+        netto.toFixed(1),
+        state.fills[index].toFixed(3),
+        zielFill.toFixed(3),
+      ].join(","));
+    }
+    return `${kopf}\n${spalten}\n${zeilen.join("\n")}\n`;
+  }
+
+  function ladeCsvHerunter() {
+    const blob = new Blob([buildCsv()], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `flussbilanz_${state.startDate}_${state.scenario}_${state.refYear}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /* ---------------------------------------------------------------- Interaktion */
 
   const SLIDERS = [
@@ -903,6 +1011,7 @@
         update();
       });
     });
+    el("flow-csv")?.addEventListener("click", ladeCsvHerunter);
     el("flow-target")?.addEventListener("click", () => {
       stopPlayback();
       applyRequiredSupply();
@@ -1320,7 +1429,7 @@
             <span class="flow-card-value" id="flow-value-households">--</span>
           </div>
           <input id="flow-slider-households" type="range" value="0" />
-          <small>Jahresmittel · stark temperaturabhängig</small>
+          <small><span id="flow-mean-households">–</span> · gemessen als SLP</small>
         </div>
 
         <div class="flow-card" data-flow="industry">
@@ -1329,7 +1438,7 @@
             <span class="flow-card-value" id="flow-value-industry">--</span>
           </div>
           <input id="flow-slider-industry" type="range" value="0" />
-          <small>Prozesswärme · Grundstoffe</small>
+          <small><span id="flow-mean-industry">–</span> · 70 % des RLM</small>
         </div>
 
         <div class="flow-card" data-flow="power">
@@ -1338,7 +1447,7 @@
             <span class="flow-card-value" id="flow-value-power">--</span>
           </div>
           <input id="flow-slider-power" type="range" value="0" />
-          <small>Gaskraftwerke · Residuallast</small>
+          <small><span id="flow-mean-power">–</span> · 30 % des RLM</small>
         </div>
       </div>
     </div>
@@ -1352,6 +1461,8 @@
           <button class="flow-chip" type="button" data-scenario="pessimistic" aria-pressed="false">Pessimistisch</button>
         </div>
         <button id="flow-target" class="flow-button flow-button-ghost" type="button">Zufluss für 80%</button>
+        <button id="flow-csv" class="flow-button flow-button-ghost" type="button"
+                title="Tagestabelle der laufenden Simulation als CSV, mit allen Annahmen und Quellen im Kopf">↓ CSV</button>
         <p class="flow-day"><small>Simulationstag</small><span id="flow-day-date">--</span></p>
       </div>
 
@@ -1386,7 +1497,10 @@
     <div class="flow-foot">
       <div class="flow-required">
         <span><i class="flow-key flow-key-in"></i>Benötigter täglicher Zufluss bis 80% am 1. November</span>
-        <strong id="flow-required-value">--</strong>
+        <p class="flow-required-row">
+          <strong id="flow-required-value">--</strong>
+          <strong id="flow-required-gap" class="flow-required-gap">--</strong>
+        </p>
         <p id="flow-required-detail">--</p>
       </div>
 

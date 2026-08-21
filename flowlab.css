@@ -831,3 +831,33 @@
 .flow-key-goal {
   background: var(--ok);
 }
+
+/* ------------------------------------------------ Benoetigter Zufluss + Luecke */
+
+.flow-required-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 26px;
+  margin: 0;
+}
+
+.flow-required-gap {
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.flow-required-gap[data-tone="warn"] { color: var(--warn); }
+.flow-required-gap[data-tone="ok"] { color: var(--ok); }
+
+/* Fuenf Gasjahre passen nicht in eine Zeile der schmalen Fussspalte. */
+.flow-refyear .flow-scenarios {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.flow-refyear .flow-chip {
+  padding: 0 12px;
+  font-size: 0.8rem;
+}
