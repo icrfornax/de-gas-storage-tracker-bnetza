@@ -25,11 +25,21 @@ ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else _HIER.parent
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "METHODIK.pdf"
 
 # --------------------------------------------------------------- Schriften
-F = "/usr/share/fonts/truetype/dejavu"
-pdfmetrics.registerFont(TTFont("DJ", f"{F}/DejaVuSans.ttf"))
-pdfmetrics.registerFont(TTFont("DJ-B", f"{F}/DejaVuSans-Bold.ttf"))
-pdfmetrics.registerFont(TTFont("DJ-I", f"{F}/DejaVuSans-Oblique.ttf"))
-pdfmetrics.registerFont(TTFont("DJ-M", f"{F}/DejaVuSansMono.ttf"))
+# DejaVu statt der eingebauten Basisschriften: nur damit stehen Anfuehrungs-
+# zeichen, Gedankenstrich und m3 zuverlaessig zur Verfuegung. Fehlen die
+# Dateien, bricht der Lauf mit einer lesbaren Meldung ab, statt ein PDF voller
+# schwarzer Kaesten zu erzeugen.
+F = Path("/usr/share/fonts/truetype/dejavu")
+_FONTS = {"DJ": "DejaVuSans.ttf", "DJ-B": "DejaVuSans-Bold.ttf",
+          "DJ-I": "DejaVuSans-Oblique.ttf", "DJ-M": "DejaVuSansMono.ttf"}
+_fehlt = [d for d in _FONTS.values() if not (F / d).exists()]
+if _fehlt:
+    raise SystemExit(
+        f"DejaVu-Schriften fehlen in {F}: {', '.join(_fehlt)}. "
+        "Unter Debian/Ubuntu: apt-get install -y fonts-dejavu-core"
+    )
+for name, datei in _FONTS.items():
+    pdfmetrics.registerFont(TTFont(name, str(F / datei)))
 pdfmetrics.registerFontFamily("DJ", normal="DJ", bold="DJ-B", italic="DJ-I")
 
 TEAL = colors.HexColor("#0b3b3c")
