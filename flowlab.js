@@ -24,6 +24,7 @@
 
   const GIE_CSV_URL = "data/gie_storage.csv";
   const CAPACITY_URL = "data/de_storage_capacity.json";
+  const CONSUMPTION_URL = "data/de_consumption_daily.csv";
   const TARGET_FILL = 80;
   const SEASON_END_MONTH_DAY = "03-31";
   const TREND_WINDOW_DAYS = 30;
@@ -58,25 +59,23 @@
    */
   const SUPPLY_SHARES = { pipeline: 0.88, lng: 0.075, domestic: 0.045 };
 
-  // Monatsprofile (Jan..Dez) relativ zum Sektormittel; werden auf Mittelwert 1 normiert.
-  const SEASON = {
-    households: [2.35, 2.2, 1.75, 1.15, 0.55, 0.2, 0.13, 0.13, 0.35, 0.95, 1.7, 2.2],
-    industry: [1.12, 1.12, 1.1, 1.02, 0.98, 0.92, 0.8, 0.78, 0.98, 1.08, 1.12, 1.02],
-    power: [1.45, 1.35, 1.15, 0.85, 0.65, 0.62, 0.72, 0.68, 0.75, 0.95, 1.3, 1.45],
-  };
+  /**
+   * Aufteilung der RLM-Menge auf Industrie und Stromerzeugung.
+   * THE misst RLM als einen Block; die Trennung ist eine Modellannahme,
+   * kalibriert auf rund 150 TWh Gas fuer Strom- und Waermeerzeugung.
+   */
+  const RLM_SPLIT = { industry: 0.7, power: 0.3 };
 
   /**
-   * Heizperiode: Temperaturabweichung wirkt auf Haushalte und (schwaecher)
-   * Kraftwerke. Referenz ist das DWD-Gebietsmittel Deutschland fuer den Winter
-   * (Dez-Feb) der Normalperiode 1991-2020: +1,4 °C.
-   * Die Reglergrenzen sind die Extreme der letzten 50 Winter (1977-2026):
-   * kaeltester Winter 1984/85 mit -2,5 °C, mildester 2006/07 mit +4,4 °C.
+   * DWD-Gebietsmittel Deutschland, Winter (Dez-Feb), in °C.
+   * Dient nur der Beschriftung der Referenzjahre. Normalperiode 1991-2020: +1,4 °C.
+   * Quelle: opendata.dwd.de, regional_averages_tm_winter.txt
    */
-  const TEMP_NORM_C = 1.4;
-  const TEMP_COLDEST_C = -2.5;
-  const TEMP_MILDEST_C = 4.4;
-  const TEMP_SENSITIVITY = { households: 0.06, power: 0.02 };
-  const HEATING_MONTHS = new Set([9, 10, 11, 0, 1, 2]);
+  const DWD_WINTER = {
+    2019: 3.06, 2020: 4.17, 2021: 1.81, 2022: 3.28,
+    2023: 2.88, 2024: 4.04, 2025: 2.16, 2026: 1.72,
+  };
+  const DWD_NORM_C = 1.4;
 
   /**
    * Szenarien. Der Verbrauchsfaktor folgt bewusst der Konvention, die das
@@ -86,9 +85,9 @@
    * Regler, mit dem der Nutzer antwortet.
    */
   const SCENARIOS = {
-    measured: { demand: 1, temperature: TEMP_NORM_C },
-    optimistic: { demand: 0.8, temperature: TEMP_MILDEST_C },
-    pessimistic: { demand: 1.2, temperature: TEMP_COLDEST_C },
+    measured: { demand: 1 },
+    optimistic: { demand: 0.8 },
+    pessimistic: { demand: 1.2 },
   };
 
   /**
@@ -142,22 +141,23 @@
     households: {
       titel: "Private Haushalte & Gewerbe",
       aktuell:
-        "Startwert: 39 % des Jahresmittels. Die Bundesnetzagentur weist für 2024 " +
-        "aus, dass 39 % des deutschen Gasverbrauchs auf Haushalts- und " +
-        "Gewerbekunden entfielen.",
+        "Startwert: gemessenes SLP-Jahresmittel des Referenz-Gasjahres " +
+        "(Trading Hub Europe). SLP steht für Standardlastprofil-Kunden — Haushalte " +
+        "und kleines Gewerbe. Über zwei Gasjahre sind das 40,0 % des Verbrauchs; " +
+        "die Bundesnetzagentur weist für 2024 39 % aus.",
       maximum:
-        "2.000 GWh/Tag — gut das Doppelte des Startwerts. Wichtig: der Regler " +
-        "stellt das <strong>Jahresmittel</strong>. Im Januar liegt der tatsächliche " +
-        "Bedarf beim rund Doppelten dieses Werts, bei Kälte noch darüber.",
+        "2.000 GWh/Tag. Der Regler stellt das <strong>Jahresmittel</strong>; der " +
+        "Tagesverlauf kommt aus der Messung. Gemessen schwankt SLP zwischen Index " +
+        "0,22 im August und 2,18 im Januar — Faktor zehn zwischen Sommer und Winter.",
       quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
     },
     industry: {
       titel: "Industrie",
       aktuell:
-        "Startwert: 43 % des Jahresmittels. Die Bundesnetzagentur führt für 2024 " +
-        "61 % des Verbrauchs unter Industrie — gemessen an den Netzausspeisepunkten. " +
-        "<strong>Die Aufteilung dieser 61 % auf Industrie und Stromerzeugung ist eine " +
-        "Modellannahme</strong>, keine amtliche Zahl.",
+        "Startwert: 70 % des gemessenen RLM-Jahresmittels. RLM steht für " +
+        "registrierende Leistungsmessung — Industrie und Kraftwerke, von THE als ein " +
+        "Block gemessen. <strong>Die Trennung 70/30 zwischen Industrie und " +
+        "Stromerzeugung ist eine Modellannahme</strong>, keine gemessene Größe.",
       maximum:
         "2.200 GWh/Tag im Jahresmittel. Das entspräche einer Industrieproduktion " +
         "deutlich über dem heutigen Niveau; der Industriebedarf ist seit 2021 " +
@@ -167,25 +167,54 @@
     power: {
       titel: "Stromerzeugung",
       aktuell:
-        "Startwert: 18 % des Jahresmittels, kalibriert auf rund 150 TWh Gas für " +
-        "Strom- und Wärmeerzeugung. <strong>Modellannahme</strong> innerhalb der " +
-        "61 %, die die Bundesnetzagentur als Industrie führt.",
+        "Startwert: 30 % des gemessenen RLM-Jahresmittels, kalibriert auf rund " +
+        "150 TWh Gas für Strom- und Wärmeerzeugung. <strong>Modellannahme</strong> — " +
+        "THE misst Industrie und Kraftwerke gemeinsam als RLM.",
       maximum:
         "900 GWh/Tag im Jahresmittel. Erreichbar nur, wenn Gaskraftwerke dauerhaft " +
         "einen deutlich größeren Teil der Residuallast decken als heute.",
       quellen: [["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"]],
     },
-    temperature: {
-      titel: "Winter-Durchschnittstemperatur",
+    ziel: {
+      titel: "Das 80-Prozent-Ziel",
       aktuell:
-        "+1,4 °C ist das Gebietsmittel des Deutschen Wetterdienstes für den " +
-        "deutschen Winter (Dezember bis Februar) in der Normalperiode 1991–2020.",
+        "Die Projektion rechnet den eingestellten Zufluss bis zum 1. November fort. " +
+        "Voreingestellt ist der <strong>Ist-Zufluss</strong>: der Bedarf am Datenstand plus " +
+        "das gemessene 30-Tage-Einspeichertempo. Die grüne Linie daneben zeigt, wo der " +
+        "Speicher bei dem Zufluss läge, der das Ziel trägt.",
       maximum:
-        "Die Reglerenden sind die Extreme der letzten 50 Winter: <strong>−2,5 °C</strong> " +
-        "im Winter 1984/85 und <strong>+4,4 °C</strong> im Winter 2006/07. Kälter oder " +
-        "milder war es in Deutschland seit 1977 in keinem Winter. Die Abweichung von " +
-        "der Norm wirkt im Modell auf die gesamte Heizperiode (Okt–Mär).",
-      quellen: [["DWD, Gebietsmittel Winter Deutschland (CDC)", "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt"]],
+        "<strong>Vorsicht mit den 80 % als Rechtsvorgabe.</strong> Die deutsche " +
+        "Gasspeicherfüllstandsverordnung vom 05.05.2025 schreibt 80 % für Kavernenspeicher " +
+        "und vier süddeutsche Porenspeicher vor, aber nur 45 % für alle übrigen " +
+        "Porenspeicher. Der VKU rechnet daraus einen deutschen Gesamtdurchschnitt von rund " +
+        "70 %. Die EU-Verordnung nennt 90 % zum Beginn der Heizperiode, lässt aber " +
+        "Abweichungen von bis zu etwa 25 Prozentpunkten zu. Die 80 %-Linie in dieser Grafik " +
+        "ist deshalb eine <strong>Bezugsmarke, kein auf den Gesamtfüllstand anwendbarer " +
+        "Grenzwert</strong>.",
+      quellen: [
+        ["VKU zu den Füllstandszielen nach EU-Trilog", "https://www.vku.de/themen/energiewende/artikel/nach-eu-trilog-die-fuellstandsziele-der-deutschen-gasspeicherfuellstandsverordnung-bleiben/"],
+        ["stadt+werk: Neue Vorgaben für Gasspeicher", "https://www.stadt-und-werk.de/k21-meldungen/neue-vorgaben-fuer-gasspeicher/"],
+      ],
+    },
+    refyear: {
+      titel: "Referenz-Gasjahr",
+      aktuell:
+        "Der Tagesverbrauch stammt aus den aggregierten Allokationsdaten von " +
+        "Trading Hub Europe für das deutsche Marktgebiet — je Gastag, getrennt nach " +
+        "SLP (Haushalte und Gewerbe) und RLM (Industrie und Kraftwerke). Über zwei " +
+        "Gasjahre liegt das Verhältnis bei 40,0 % zu 60,0 % und bestätigt damit " +
+        "unabhängig die 39 % zu 61 % der Bundesnetzagentur.",
+      maximum:
+        "Die Auswahl umfasst die Gasjahre, für die Messwerte vorliegen. " +
+        "<strong>Ein Winter unterhalb der DWD-Norm von +1,4 °C ist nicht darunter</strong> — " +
+        "seit Beginn der THE-Veröffentlichung 2018 war jeder deutsche Winter mild bis " +
+        "normal. Ein echter Kältewinter lässt sich damit nicht aus Messwerten " +
+        "nachstellen; dafür ist das Szenario „Pessimistisch\" da, das das Niveau um " +
+        "20 % anhebt.",
+      quellen: [
+        ["Trading Hub Europe, Aggregierte Verbrauchsdaten", "https://www.tradinghub.eu/de-de/Ver%C3%B6ffentlichungen/Transparenz/Aggregierte-Verbrauchsdaten"],
+        ["DWD, Gebietsmittel Winter Deutschland (CDC)", "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt"],
+      ],
     },
   };
 
@@ -197,7 +226,6 @@
     households: { min: 0, max: 2000, step: 10 },
     industry: { min: 0, max: 2200, step: 10 },
     power: { min: 0, max: 900, step: 10 },
-    temperature: { min: TEMP_COLDEST_C, max: TEMP_MILDEST_C, step: 0.1 },
   };
 
   const state = {
@@ -219,7 +247,11 @@
     playing: null,
     supply: { pipeline: 0, lng: 0, domestic: 0 },
     demand: { households: 0, industry: 0, power: 0 },
-    temperature: TEMP_NORM_C,
+    // Gemessene Jahresmittel des Referenzjahres — Bezugspunkt der Regler.
+    base: { households: 0, industry: 0, power: 0 },
+    consumption: new Map(),   // Gasjahr -> Map("MM-TT" -> { slp, rlm })
+    refYears: [],
+    refYear: null,
     scenario: "measured",
   };
 
@@ -272,30 +304,46 @@
   const daysBetweenDates = (from, to) =>
     Math.round((parseDate(to) - parseDate(from)) / 86400000);
 
-  function normalizeSeasonProfiles() {
-    Object.keys(SEASON).forEach((sector) => {
-      const profile = SEASON[sector];
-      const mean = profile.reduce((sum, value) => sum + value, 0) / profile.length;
-      SEASON[sector] = profile.map((value) => value / mean);
-    });
-  }
 
   /* -------------------------------------------------------------------- Modell */
 
-  function seasonFactor(sector, month) {
-    let factor = SEASON[sector][month];
-    const sensitivity = TEMP_SENSITIVITY[sector];
-    if (sensitivity && HEATING_MONTHS.has(month)) {
-      factor *= Math.max(0.25, 1 + sensitivity * (TEMP_NORM_C - state.temperature));
-    }
-    return factor;
+  /** Gasjahr laeuft von August bis Juli und wird nach dem Startjahr benannt. */
+  const gasYearOf = (date) =>
+    date.getMonth() >= 7 ? date.getFullYear() : date.getFullYear() - 1;
+
+  const monthDay = (date) =>
+    `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+  /**
+   * Gemessener Verbrauch fuer den Kalendertag des Simulationstages, entnommen
+   * dem gewaehlten Referenz-Gasjahr. Der 29. Februar faellt auf den 28.
+   */
+  function measuredOn(index) {
+    const jahr = state.consumption.get(state.refYear);
+    if (!jahr) return null;
+    const schluessel = monthDay(dayDate(index));
+    // Der 29. Februar kommt nur in Schaltjahren vor; sonst gilt der 28.
+    return jahr.get(schluessel) || (schluessel === "02-29" ? jahr.get("02-28") : null);
   }
 
+  /**
+   * Tagesbedarf in GWh.
+   *   Haushalte & Gewerbe = SLP(Tag)   x  Regler / gemessenes SLP-Jahresmittel
+   *   Industrie           = RLM(Tag) x 0,70 x Regler / gemessenes Jahresmittel
+   *   Stromerzeugung      = RLM(Tag) x 0,30 x Regler / gemessenes Jahresmittel
+   * Die Form kommt also vollstaendig aus der Messung, der Regler setzt nur das Niveau.
+   */
   function demandOn(index) {
-    const month = dayDate(index).getMonth();
-    const households = state.demand.households * seasonFactor("households", month);
-    const industry = state.demand.industry * seasonFactor("industry", month);
-    const power = state.demand.power * seasonFactor("power", month);
+    const tag = measuredOn(index);
+    const skala = (sektor, wert) =>
+      state.base[sektor] > 0 ? wert * (state.demand[sektor] / state.base[sektor]) : 0;
+    if (!tag) {
+      const total = state.demand.households + state.demand.industry + state.demand.power;
+      return { ...state.demand, total };
+    }
+    const households = skala("households", tag.slp);
+    const industry = skala("industry", tag.rlm * RLM_SPLIT.industry);
+    const power = skala("power", tag.rlm * RLM_SPLIT.power);
     return { households, industry, power, total: households + industry + power };
   }
 
@@ -514,6 +562,32 @@
     label.textContent = `linear ≈${nf1.format(state.linearTarget)}%`;
   }
 
+  /** Zweite Kurve: derselbe Bedarf, aber Zufluss auf Zielniveau. */
+  function renderTargetPath() {
+    const pfad = el("flow-axis-goal");
+    if (!pfad) return;
+    const zufluss = zielZufluss();
+    let fill = state.startFill;
+    let d = `M${axisX(0).toFixed(1)},${axisY(fill).toFixed(1)}`;
+    for (let index = 0; index < state.days; index += 1) {
+      const net = clamp(
+        zufluss - demandOn(index).total,
+        -state.withdrawalCapacity,
+        state.injectionCapacity,
+      );
+      fill = clamp(fill + net / state.ppGwh, 0, 100);
+      d += `L${axisX(index + 1).toFixed(1)},${axisY(fill).toFixed(1)}`;
+    }
+    pfad.setAttribute("d", d);
+
+    const label = el("flow-axis-goal-label");
+    if (!label) return;
+    label.setAttribute("x", (axisX(state.targetIndex) + 8).toFixed(1));
+    // Ueber die 80-%-Linie, sonst liegt die Schrift auf der gestrichelten Marke.
+    label.setAttribute("y", (axisY(TARGET_FILL) - 9).toFixed(1));
+    label.textContent = `Zielpfad · ${nf0.format(Math.round(zufluss))} GWh/Tag`;
+  }
+
   function renderAxisCurve(fills) {
     let path = "";
     for (let index = 0; index <= state.days; index += 1) {
@@ -528,6 +602,16 @@
     el("flow-axis-dot").setAttribute("cy", axisY(fills[state.day]).toFixed(1));
   }
 
+  /** "2025/26 · Winter 1,7 °C" */
+  function refYearLabel(jahr) {
+    if (jahr === null || jahr === undefined) return "—";
+    const kurz = `${jahr}/${String(jahr + 1).slice(2)}`;
+    const temp = DWD_WINTER[jahr + 1];
+    return temp === undefined
+      ? kurz
+      : `${kurz} · Winter ${nf1.format(temp).replace("-", "−")} °C`;
+  }
+
   /* -------------------------------------------------------------------- Ausgabe */
 
   function renderControls() {
@@ -537,8 +621,8 @@
     el("flow-value-households").textContent = gwh(state.demand.households);
     el("flow-value-industry").textContent = gwh(state.demand.industry);
     el("flow-value-power").textContent = gwh(state.demand.power);
-    el("flow-value-temperature").textContent =
-      `${nf1.format(state.temperature).replace("-", "−")} °C`;
+    const refLabel = el("flow-value-refyear");
+    if (refLabel) refLabel.textContent = refYearLabel(state.refYear);
     el("flow-day-date").textContent = dateText(dayIso(state.day));
   }
 
@@ -608,32 +692,28 @@
     renderMetrics(state.fills, demand);
     renderBottle(state.fills[state.day]);
     renderAxisCurve(state.fills);
+    renderTargetPath();
     renderRequirement(state.fills);
     renderConnectors(demand);
   }
 
   /* ------------------------------------------------------------------ Belege */
 
-  let popoverTimer = null;
   let popoverFest = null;
+  let popoverAusloeser = null;
 
-  function versteckeBeleg(sofort) {
-    window.clearTimeout(popoverTimer);
-    const zeigen = () => {
-      const pop = el("flow-source-popover");
-      if (pop) pop.hidden = true;
-      document.querySelectorAll(".flow-info[aria-expanded=true]")
-        .forEach((b) => b.setAttribute("aria-expanded", "false"));
-    };
-    if (sofort) zeigen();
-    else popoverTimer = window.setTimeout(zeigen, 220);
+  function versteckeBeleg() {
+    const pop = el("flow-source-popover");
+    if (pop) pop.hidden = true;
+    popoverAusloeser = null;
+    document.querySelectorAll(".flow-info[aria-expanded=true]")
+      .forEach((knopf) => knopf.setAttribute("aria-expanded", "false"));
   }
 
   function zeigeBeleg(key, ausloeser) {
     const beleg = SOURCES[key];
     const pop = el("flow-source-popover");
     if (!beleg || !pop) return;
-    window.clearTimeout(popoverTimer);
 
     pop.innerHTML =
       `<h4>${beleg.titel}</h4>` +
@@ -643,12 +723,27 @@
         .map(([titel, url]) => `<a href="${url}" target="_blank" rel="noreferrer">${titel}</a>`)
         .join(" · ")}</p>`;
     pop.hidden = false;
+    document.querySelectorAll(".flow-info[aria-expanded=true]")
+      .forEach((knopf) => knopf.setAttribute("aria-expanded", "false"));
     ausloeser.setAttribute("aria-expanded", "true");
 
+    popoverAusloeser = ausloeser;
+    positioniereBeleg();
+  }
+
+  function positioniereBeleg() {
+    const pop = el("flow-source-popover");
+    if (!pop || pop.hidden || !popoverAusloeser) return;
     const rand = 12;
     const breite = Math.min(380, window.innerWidth - 2 * rand);
     pop.style.width = `${breite}px`;
-    const r = ausloeser.getBoundingClientRect();
+    const r = popoverAusloeser.getBoundingClientRect();
+    // Ausloeser aus dem Sichtfeld gescrollt: schliessen statt frei schweben.
+    if (r.bottom < 0 || r.top > window.innerHeight) {
+      popoverFest = null;
+      versteckeBeleg();
+      return;
+    }
     pop.style.left = `${clamp(r.left + r.width / 2 - breite / 2, rand, window.innerWidth - breite - rand)}px`;
     pop.style.top = `${r.bottom + 10}px`;
     const hoehe = pop.getBoundingClientRect().height;
@@ -657,36 +752,54 @@
     }
   }
 
+  /**
+   * Ein- und Ausblenden ueber eine einzige Regel am Dokument statt ueber
+   * mouseleave am Knopf: sobald der Zeiger weder auf einem Info-Knopf noch im
+   * Popover steht, wird geschlossen. Die frueheren Verschwinde-Effekte kamen
+   * daher, dass mouseleave feuerte, bevor der Zeiger das Popover erreichte.
+   */
   function bindeBelege() {
-    const pop = el("flow-source-popover");
-    pop?.addEventListener("mouseenter", () => window.clearTimeout(popoverTimer));
-    pop?.addEventListener("mouseleave", () => versteckeBeleg());
+    document.addEventListener("pointerover", (event) => {
+      const knopf = event.target.closest?.(".flow-info");
+      if (knopf) {
+        if (!popoverFest) zeigeBeleg(knopf.dataset.info, knopf);
+        return;
+      }
+      if (popoverFest) return;
+      if (event.target.closest?.(".flow-popover")) return;
+      versteckeBeleg();
+    });
 
     document.querySelectorAll(".flow-info").forEach((knopf) => {
-      const key = knopf.dataset.info;
       knopf.setAttribute("aria-expanded", "false");
-      knopf.addEventListener("mouseenter", () => { if (!popoverFest) zeigeBeleg(key, knopf); });
-      knopf.addEventListener("mouseleave", () => { if (!popoverFest) versteckeBeleg(); });
-      knopf.addEventListener("focus", () => zeigeBeleg(key, knopf));
+      knopf.addEventListener("focus", () => zeigeBeleg(knopf.dataset.info, knopf));
       knopf.addEventListener("blur", () => { if (!popoverFest) versteckeBeleg(); });
-      // Klick haelt das Popover offen — noetig auf Touch, praktisch am Desktop.
+      // Klick heftet das Popover an — noetig auf Touch, praktisch am Desktop.
       knopf.addEventListener("click", (event) => {
         event.preventDefault();
-        if (popoverFest === key) { popoverFest = null; versteckeBeleg(true); }
-        else { popoverFest = key; zeigeBeleg(key, knopf); }
+        if (popoverFest === knopf.dataset.info) {
+          popoverFest = null;
+          versteckeBeleg();
+        } else {
+          popoverFest = knopf.dataset.info;
+          zeigeBeleg(knopf.dataset.info, knopf);
+        }
       });
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") { popoverFest = null; versteckeBeleg(true); }
+      if (event.key !== "Escape") return;
+      popoverFest = null;
+      versteckeBeleg();
     });
     document.addEventListener("click", (event) => {
       if (!popoverFest) return;
       if (event.target.closest(".flow-info") || event.target.closest(".flow-popover")) return;
       popoverFest = null;
-      versteckeBeleg(true);
+      versteckeBeleg();
     });
-    window.addEventListener("scroll", () => { if (!popoverFest) versteckeBeleg(true); }, { passive: true });
+    window.addEventListener("scroll", positioniereBeleg, { passive: true });
+    window.addEventListener("resize", positioniereBeleg);
   }
 
   /* ---------------------------------------------------------------- Interaktion */
@@ -708,8 +821,9 @@
       state[group][key] = clamp(state[group][key], range.min, range.max);
       slider.value = String(Math.round(state[group][key]));
     });
-    const temperature = el("flow-slider-temperature");
-    if (temperature) temperature.value = String(state.temperature);
+    document.querySelectorAll("[data-refyear]").forEach((chip) => {
+      chip.setAttribute("aria-pressed", String(Number(chip.dataset.refyear) === state.refYear));
+    });
     const scrub = el("flow-scrub");
     if (scrub) scrub.value = String(state.day);
   }
@@ -759,14 +873,15 @@
       });
     });
 
-    const temperature = el("flow-slider-temperature");
-    temperature.min = String(RANGES.temperature.min);
-    temperature.max = String(RANGES.temperature.max);
-    temperature.step = String(RANGES.temperature.step);
-    temperature.addEventListener("input", (event) => {
-      state.temperature = number(event.target.value) ?? TEMP_NORM_C;
-      state.scenario = "custom";
-      update();
+    el("flow-refyears")?.addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-refyear]");
+      if (chip) {
+        stopPlayback();
+        state.refYear = Number(chip.dataset.refyear);
+        applyScenario(state.scenario === "custom" ? "measured" : state.scenario);
+        applySliderPositions();
+        update();
+      }
     });
 
     const scrub = el("flow-scrub");
@@ -816,6 +931,47 @@
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  /**
+   * de_consumption_daily.csv -> Map(Gasjahr -> Map("MM-TT" -> { slp, rlm })).
+   * Nur vollstaendige Gasjahre (>= 360 Gastage) werden als Referenz angeboten.
+   */
+  function parseConsumption(text) {
+    const [kopf, ...zeilen] = text.trim().split(/\r?\n/);
+    const spalten = kopf.split(",");
+    const iDate = spalten.indexOf("date");
+    const iSlp = spalten.indexOf("slp_gwh");
+    const iRlm = spalten.indexOf("rlm_gwh");
+    if (iDate < 0 || iSlp < 0 || iRlm < 0) throw new Error("Unerwartete Spalten.");
+
+    const jahre = new Map();
+    zeilen.forEach((zeile) => {
+      const teile = zeile.split(",");
+      const datum = teile[iDate];
+      const slp = number(teile[iSlp]);
+      const rlm = number(teile[iRlm]);
+      if (!datum || slp === null || rlm === null) return;
+      const jahr = gasYearOf(parseDate(datum));
+      if (!jahre.has(jahr)) jahre.set(jahr, new Map());
+      jahre.get(jahr).set(datum.slice(5), { slp, rlm });
+    });
+    [...jahre.keys()].forEach((jahr) => {
+      if (jahre.get(jahr).size < 360) jahre.delete(jahr);
+    });
+    return jahre;
+  }
+
+  function renderRefYearChips() {
+    const box = el("flow-refyears");
+    if (!box) return;
+    box.innerHTML = state.refYears
+      .map((jahr) => {
+        const gedrueckt = jahr === state.refYear;
+        return `<button class="flow-chip" type="button" data-refyear="${jahr}" ` +
+          `aria-pressed="${gedrueckt}">${jahr}/${String(jahr + 1).slice(2)}</button>`;
+      })
+      .join("");
+  }
+
   function measuredRate(rows) {
     const latest = rows.at(-1);
     const cutoff = isoDate(shiftDate(latest.date, -TREND_WINDOW_DAYS));
@@ -848,44 +1004,75 @@
   }
 
   /**
-   * Regler auf den gemessenen Zustand setzen:
-   *   Entnahme = gemessener Tagesverbrauch, über das Monatsprofil aufs Jahresmittel
-   *              zurückgerechnet und nach Sektoranteilen aufgeteilt.
-   *   Zufluss  = Verbrauch + gemessenes 30-Tage-Einspeichertempo.
+   * Regler auf den gemessenen Zustand setzen.
+   *   Entnahme: Jahresmittel des Referenz-Gasjahres, SLP und RLM getrennt
+   *             gemessen, RLM nach RLM_SPLIT auf Industrie und Strom verteilt.
+   *   Zufluss:  das Niveau, das am 1. November 80 % traegt (siehe requiredSupply).
+   *             Eingefroren auf den Augustwert waere die Voreinstellung ein
+   *             Szenario, das niemand faehrt — der Speicher kippte im September.
    */
-  /** Jahresmittel des Tagesverbrauchs in GWh, aus dem AGSI-Jahreswert. */
-  const annualMeanDemand = () => (state.consumptionTwh * 1000) / 365;
-
-  /** Verbrauch am Datenstand, wie ihn das Monatsprofil ergibt. */
-  function demandAtStart() {
-    const month = parseDate(state.startDate).getMonth();
-    return annualMeanDemand() * Object.entries(DEMAND_SHARES).reduce(
-      (sum, [sector, share]) => sum + share * SEASON[sector][month],
-      0,
-    );
+  function seedFromData() {
+    const jahr = state.consumption.get(state.refYear);
+    if (jahr && jahr.size) {
+      let slp = 0;
+      let rlm = 0;
+      jahr.forEach((tag) => { slp += tag.slp; rlm += tag.rlm; });
+      slp /= jahr.size;
+      rlm /= jahr.size;
+      state.base = {
+        households: slp,
+        industry: rlm * RLM_SPLIT.industry,
+        power: rlm * RLM_SPLIT.power,
+      };
+    } else {
+      // Ohne Messreihe: flacher Bedarf aus dem AGSI-Jahreswert.
+      const mittel = annualMeanDemand();
+      state.base = {
+        households: mittel * 0.4,
+        industry: mittel * 0.6 * RLM_SPLIT.industry,
+        power: mittel * 0.6 * RLM_SPLIT.power,
+      };
+    }
+    state.demand = { ...state.base };
+    state.day = 0;
+    // Gemessener Ist-Zufluss: Bedarf am Datenstand plus das gemessene
+    // 30-Tage-Einspeichertempo. Das ist der Pfad, auf dem wir tatsaechlich sind.
+    verteileZufluss(demandOn(0).total + state.measuredRate * state.ppGwh);
   }
 
-  function seedFromData() {
-    const annualMean = annualMeanDemand();
-    state.demand = {
-      households: annualMean * DEMAND_SHARES.households,
-      industry: annualMean * DEMAND_SHARES.industry,
-      power: annualMean * DEMAND_SHARES.power,
-    };
-
-    const supply = demandAtStart() + state.measuredRate * state.ppGwh;
+  /** Summe auf die drei Quellen verteilen, Mischung beibehalten. */
+  function verteileZufluss(summe) {
+    const aktuell = supplyTotal();
+    const anteil = aktuell > 0
+      ? {
+          pipeline: state.supply.pipeline / aktuell,
+          lng: state.supply.lng / aktuell,
+          domestic: state.supply.domestic / aktuell,
+        }
+      : SUPPLY_SHARES;
     state.supply = {
-      pipeline: supply * SUPPLY_SHARES.pipeline,
-      lng: supply * SUPPLY_SHARES.lng,
-      domestic: supply * SUPPLY_SHARES.domestic,
+      pipeline: summe * anteil.pipeline,
+      lng: summe * anteil.lng,
+      domestic: summe * anteil.domestic,
     };
-    state.temperature = TEMP_NORM_C;
-    state.day = 0;
   }
 
   /** Zufluss auf das Niveau heben, das bis zum 1. November für 80% nötig ist. */
+  /** Konstanter Zufluss, der am 1. November 80 % traegt — ab Tag 0 gerechnet. */
+  function zielZufluss() {
+    let bedarf = 0;
+    for (let index = 0; index < state.targetIndex; index += 1) {
+      bedarf += demandOn(index).total;
+    }
+    const luecke = Math.max(0, TARGET_FILL - state.startFill);
+    return bedarf / state.targetIndex + (luecke * state.ppGwh) / state.targetIndex;
+  }
+
   function applyRequiredSupply() {
+    const merk = state.day;
+    state.day = 0;
     const required = requiredSupply(simulate());
+    state.day = merk;
     if (!required || required.met) return;
     const current = supplyTotal();
     const shares = current > 0
@@ -906,30 +1093,41 @@
   function applyScenario(key) {
     const scenario = SCENARIOS[key];
     if (!scenario) return;
+    // Zufluss beibehalten, sonst zeigte jedes Szenario wieder exakt 80 % —
+    // der Vergleich zwischen den Szenarien waere damit unsichtbar.
+    const zufluss = state.scenario === "measured" || key === "measured"
+      ? null
+      : { ...state.supply };
     seedFromData();
+    if (zufluss) state.supply = zufluss;
     DEMAND_KEYS.forEach((sector) => {
       state.demand[sector] *= scenario.demand;
     });
-    state.temperature = scenario.temperature;
     state.scenario = key;
   }
 
   function scenarioText() {
-    const winter = `${nf1.format(state.temperature).replace("-", "−")} °C`;
+    const jahr = state.refYear === null
+      ? "—"
+      : `${state.refYear}/${String(state.refYear + 1).slice(2)}`;
+    const temp = DWD_WINTER[(state.refYear ?? 0) + 1];
+    const winter = temp === undefined
+      ? ""
+      : ` Der Winter dieses Gasjahres lag im DWD-Mittel bei ${nf1.format(temp).replace("-", "−")} °C ` +
+        `(Norm 1991–2020: ${nf1.format(DWD_NORM_C)} °C).`;
     if (state.scenario === "measured") {
-      return `<strong>Messwerte</strong> — Jahresverbrauch ${nf1.format(state.consumptionTwh)} TWh ` +
-        `(${nf0.format(Math.round(annualMeanDemand()))} GWh/Tag im Mittel), Winter auf der DWD-Norm ${winter}.`;
+      return `<strong>Messwerte</strong> — Tagesverbrauch wie im Gasjahr ${jahr} gemessen.${winter}`;
     }
     if (state.scenario === "optimistic") {
-      return `<strong>Optimistisch</strong> — Verbrauch 20 % unter dem Mittel und der ` +
-        `mildeste Winter der letzten 50 Jahre (2006/07, ${winter}). Beide Annahmen wirken zusammen.`;
+      return `<strong>Optimistisch</strong> — Verbrauchsniveau 20 % unter Gasjahr ${jahr}, ` +
+        `Tagesform aus der Messung.${winter}`;
     }
     if (state.scenario === "pessimistic") {
-      return `<strong>Pessimistisch</strong> — Verbrauch 20 % über dem Mittel und der ` +
-        `kälteste Winter der letzten 50 Jahre (1984/85, ${winter}). Beide Annahmen wirken zusammen.`;
+      return `<strong>Pessimistisch</strong> — Verbrauchsniveau 20 % über Gasjahr ${jahr}, ` +
+        `Tagesform aus der Messung.${winter}`;
     }
-    return `<strong>Eigene Einstellung</strong> — Entnahme oder Temperatur von Hand verändert. ` +
-      `Winter ${winter}.`;
+    return `<strong>Eigene Einstellung</strong> — Entnahme von Hand verändert, ` +
+      `Tagesform weiterhin aus Gasjahr ${jahr}.${winter}`;
   }
 
   function renderScenario() {
@@ -959,20 +1157,28 @@
 
   function renderSourceNote(loaded) {
     const q = (url, text) => `<a href="${url}" target="_blank" rel="noreferrer">${text}</a>`;
+    const verbrauch = state.refYears.length
+      ? `Der Tagesverbrauch stammt aus den aggregierten Allokationsdaten von ` +
+        `${q("https://www.tradinghub.eu/de-de/Ver%C3%B6ffentlichungen/Transparenz/Aggregierte-Verbrauchsdaten", "Trading Hub Europe")} ` +
+        `(${state.refYears.length} vollständige Gasjahre, SLP und RLM getrennt gemessen). `
+      : `<strong>Die Verbrauchsreihe fehlt</strong>, das Labor rechnet ersatzweise mit flachem Bedarf. `;
     el("flow-source-note").innerHTML = loaded
       ? `<strong>Datenstand ${dateText(state.startDate)}.</strong> Füllstand ${nf2.format(state.startFill)} %, ` +
-        `5-Jahres-Norm, Arbeitsgasvolumen ${nf1.format((state.ppGwh * 100) / 1000)} TWh ` +
-        `(1 Prozentpunkt ≈ ${nf0.format(Math.round(state.ppGwh))} GWh) und Jahresverbrauch ` +
-        `${nf1.format(state.consumptionTwh)} TWh stammen aus ${q("https://agsi.gie.eu/", "GIE AGSI+")} ` +
-        `(API v013). Der Zufluss startet so, dass die Netto-Bilanz dem gemessenen 30-Tage-Tempo von ` +
-        `${signed(state.measuredRate, (v) => nf2.format(v))} pp/Tag entspricht. ` +
-        `Sektoranteile und Bezugsmix: ${q("https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html", "Bundesnetzagentur")} ` +
+        `Arbeitsgasvolumen ${nf1.format((state.ppGwh * 100) / 1000)} TWh ` +
+        `(1 Prozentpunkt ≈ ${nf0.format(Math.round(state.ppGwh))} GWh) und die Ein-/Ausspeicherkapazität ` +
+        `kommen aus ${q("https://agsi.gie.eu/", "GIE AGSI+")} (API v013). ${verbrauch}` +
+        `Bezugsmix und Sektoranteile: ` +
+        `${q("https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html", "Bundesnetzagentur")} ` +
         `und ${q("https://jahresbericht.bveg.de/erdgasfoerderung/", "BVEG")}; LNG-Kapazität: ` +
         `${q("https://energy-terminal.de/en/terminals", "Deutsche Energy Terminal")}; Wintertemperaturen: ` +
-        `${q("https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt", "DWD-Gebietsmittel")}. ` +
-        `Das <i>i</i> an jedem Regler nennt Herkunft und Bedeutung des Maximums. ` +
-        `<strong>Monatsprofile, Temperatursensitivität und die Aufteilung zwischen Industrie und ` +
-        `Stromerzeugung sind Modellannahmen</strong> — eine Simulation zum Durchspielen, keine Prognose.`
+        `${q("https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/seasonal/air_temperature_mean/regional_averages_tm_winter.txt", "DWD")}. ` +
+        `<br><strong>Rechenweg:</strong> Bedarf je Tag = gemessener Wert des gleichen Kalendertags ` +
+        `im Referenz-Gasjahr, mit dem Reglerniveau skaliert. Netto = Zufluss − Bedarf, begrenzt auf ` +
+        `Ein- und Ausspeicherkapazität. Füllstand<sub>t+1</sub> = Füllstand<sub>t</sub> + Netto / ` +
+        `${nf0.format(Math.round(state.ppGwh))} GWh, gedeckelt auf 0–100 %. ` +
+        `Der Zufluss startet auf dem Niveau, das am 1. November 80 % trägt. ` +
+        `<strong>Als Annahme bleiben nur der Bezugsmix und die Trennung 70/30 zwischen Industrie ` +
+        `und Stromerzeugung</strong> — das <i>i</i> an jedem Regler nennt Herkunft und Grenzen.`
       : "Datendateien nicht erreichbar; die Simulation läuft mit hinterlegten Startwerten.";
   }
 
@@ -1005,7 +1211,10 @@
         <small id="flow-net-detail">Zufluss minus Entnahme</small>
       </div>
       <div class="flow-metric flow-metric-target">
-        <span><i class="flow-key flow-key-target"></i>1. Nov · bei konstantem Zufluss</span>
+        <span><i class="flow-key flow-key-target"></i>1. Nov · bei konstantem Zufluss
+          <button class="flow-info" type="button" data-info="ziel"
+                  aria-label="Quelle und Bedeutung: 80-Prozent-Ziel">i</button>
+        </span>
         <strong id="flow-projection">--</strong>
         <small id="flow-projection-detail">Ziel: 80%</small>
       </div>
@@ -1138,8 +1347,9 @@
       <p class="flow-scenario-note" id="flow-scenario-note">Startwerte werden geladen …</p>
 
       <p class="flow-timeline-legend">
-        <i class="flow-key flow-key-fill"></i>Simulation ·
-        <i class="flow-key flow-key-linear"></i>lineare Fortschreibung des gemessenen Tempos ·
+        <i class="flow-key flow-key-fill"></i>Ist-Pfad, von den Reglern gesteuert ·
+        <i class="flow-key flow-key-goal"></i>Zielpfad für 80 % ·
+        <i class="flow-key flow-key-linear"></i>lineare Fortschreibung ·
         <span id="flow-range">--</span>
       </p>
 
@@ -1151,6 +1361,9 @@
           <g id="flow-axis-scale"></g>
           <path id="flow-axis-linear" class="flow-axis-linear" d=""></path>
           <text id="flow-axis-linear-label" class="flow-axis-linear-label" x="0" y="0" dominant-baseline="central">linear</text>
+          <path id="flow-axis-goal" class="flow-axis-goal" d=""></path>
+          <text id="flow-axis-goal-label" class="flow-axis-goal-label" x="0" y="0"
+                dominant-baseline="central">Zielpfad</text>
           <path id="flow-axis-curve" class="flow-axis-curve" d=""></path>
           <line id="flow-axis-cursor" class="flow-axis-cursor" x1="16" y1="8" x2="16" y2="158"></line>
           <circle id="flow-axis-dot" class="flow-axis-dot" cx="16" cy="83" r="5"></circle>
@@ -1166,21 +1379,16 @@
         <p id="flow-required-detail">--</p>
       </div>
 
-      <div class="flow-temperature">
-        <span><i class="flow-key flow-key-out"></i>Winter-Durchschnittstemperatur
-          <button class="flow-info" type="button" data-info="temperature"
-                  aria-label="Quelle und Grenzen: Winter-Durchschnittstemperatur">i</button>
+      <div class="flow-temperature flow-refyear">
+        <span><i class="flow-key flow-key-out"></i>Referenz-Gasjahr für den Verbrauch
+          <button class="flow-info" type="button" data-info="refyear"
+                  aria-label="Quelle und Bedeutung: Referenz-Gasjahr">i</button>
         </span>
-        <div class="flow-temperature-row">
-          <input id="flow-slider-temperature" type="range" value="3"
-                 aria-label="Winter-Durchschnittstemperatur in Grad Celsius" />
-          <strong id="flow-value-temperature">--</strong>
-        </div>
-        <p class="flow-temperature-scale">
-          <span>−2,5 °C · 1984/85</span><span>Norm +1,4 °C</span><span>+4,4 °C · 2006/07</span>
-        </p>
-        <p>Kältester und mildester deutscher Winter der letzten 50 Jahre (DWD-Gebietsmittel
-          Dez–Feb). Kälter heißt mehr Entnahme in der Heizperiode (Okt–Mär).</p>
+        <div class="flow-scenarios" id="flow-refyears" role="group" aria-label="Referenz-Gasjahr wählen"></div>
+        <p><strong id="flow-value-refyear">—</strong></p>
+        <p>Jeder Simulationstag nimmt den gemessenen Verbrauch des gleichen Kalendertags
+          aus diesem Gasjahr (August bis Juli). Das Wetter steckt damit in den Daten —
+          es wird nicht modelliert.</p>
       </div>
     </div>
 
@@ -1209,7 +1417,6 @@
 
   async function init() {
     if (!mountSection()) return;
-    normalizeSeasonProfiles();
 
     let loaded = false;
     try {
@@ -1224,6 +1431,20 @@
     }
 
     try {
+      const response = await fetch(CONSUMPTION_URL);
+      if (!response.ok) throw new Error(`Verbrauchsreihe: HTTP ${response.status}`);
+      state.consumption = parseConsumption(await response.text());
+      state.refYears = [...state.consumption.keys()].sort((a, b) => a - b);
+      state.refYear = state.refYears.at(-1) ?? null;
+      if (!state.refYears.length) throw new Error("Keine vollständigen Gasjahre.");
+    } catch (error) {
+      console.warn("Flow-Lab: Tagesverbrauch nicht verfügbar.", error);
+      state.consumption = new Map();
+      state.refYears = [];
+      state.refYear = null;
+    }
+
+    try {
       const response = await fetch(CAPACITY_URL);
       if (response.ok) {
         const max = number((await response.json()).technical_max_injection_gwh_per_day);
@@ -1234,6 +1455,7 @@
     }
 
     setHorizon();
+    renderRefYearChips();
     applyScenario("measured");
     renderBottleScale();
     renderAxisScale();

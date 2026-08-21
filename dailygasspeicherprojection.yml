@@ -1,0 +1,84 @@
+name: Daily Gasspeicher Projection
+
+on:
+  schedule:
+    # 9:00 UTC == 10:00 GMT+1
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  projection:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Smoke-check projection script
+        run: |
+          python -m py_compile \
+            scripts/2026_gasspeicher_deutschland.py \
+            scripts/update_gie_storage.py
+
+      - name: Update GIE AGSI+ data
+        env:
+          GIE_API_KEY: ${{ secrets.GIE_API_KEY }}
+        run: python scripts/update_gie_storage.py
+
+      - name: Update THE daily consumption
+        continue-on-error: true
+        run: python scripts/update_the_consumption.py
+
+      - name: Run projection script
+        run: python scripts/2026_gasspeicher_deutschland.py
+
+      - name: Validate static dashboard
+        run: python scripts/validate_dashboard.py
+
+      - name: Commit data updates
+        run: |
+          git add data/bnetza_cache.csv data/projections.csv data/gie_storage.csv data/eu_storage.csv README.md
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): update gasspeicher projections ($(date -u +%F))"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          git push origin "HEAD:${BRANCH}"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload static artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
