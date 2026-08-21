@@ -17,6 +17,10 @@ REQUIRED_FILES = [
     ROOT / "data" / "eu_storage.csv",
     ROOT / "data" / "gie_storage.csv",
     ROOT / "data" / "de_storage_capacity.json",
+    ROOT / "data" / "de_consumption_daily.csv",
+    ROOT / "flowlab.js",
+    ROOT / "flowlab.css",
+    ROOT / "METHODIK.pdf",
 ]
 REQUIRED_COLUMNS = {
     "run_timestamp_utc",
@@ -52,10 +56,21 @@ def main() -> int:
         'id="de-chart"',
         "GIE AGSI+ API-Dokumentation v013",
         "Global Energy Flow",
-        "80% für Porenspeicher, 45% für Kavernenspeicher",
-        "EU empfiehlt 90%",
+        # Korrigiert am 21.08.2026: die Vorgaben standen vertauscht. Die
+        # Gasspeicherfuellstandsverordnung vom 05.05.2025 schreibt 80 % fuer
+        # Kavernenspeicher und vier sueddeutsche Porenspeicher vor, 45 % fuer
+        # die uebrigen Porenspeicher. Die EU-Verordnung 2025/1733 nennt 90 %
+        # zwischen dem 1.10. und dem 1.12. mit bis zu 20 Prozentpunkten
+        # Abweichung — nicht "empfiehlt 90 %".
+        "80% für Kavernen- und vier süddeutsche Porenspeicher",
+        "45% für die übrigen Porenspeicher",
+        "EU 90% zwischen 1.10. und 1.12., Abweichung bis 20 Prozentpunkte",
         "BJNR0820A0025.html",
-        "OJ:L_202501733",
+        "eli/reg/2025/1733/oj",
+        # Das Flussbilanz-Labor muss eingebunden sein, sonst deployt eine
+        # Seite ohne Labor, ohne dass es jemand merkt.
+        "flowlab.css",
+        "flowlab.js",
         "https://github.com/volzinnovation/de-gas-storage-tracker-bnetza",
         "Open Source ©",
         "https://www.raphaelvolz.de",
