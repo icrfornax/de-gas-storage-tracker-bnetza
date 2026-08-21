@@ -1,5 +1,8 @@
 name: Deploy Dashboard to Pages
 
+# Der paths-Filter muss jede Datei nennen, die auf der Seite landet.
+# Fehlte hier flowlab.js, deployte ein Fix an der Grafik nicht — der Push
+# loeste keinen Lauf aus und niemand haette es gemerkt.
 on:
   push:
     branches: ["main"]
@@ -7,6 +10,9 @@ on:
       - "index.html"
       - "styles.css"
       - "dashboard.js"
+      - "flowlab.js"
+      - "flowlab.css"
+      - "METHODIK.pdf"
       - "data/**"
       - "scripts/validate_dashboard.py"
       - ".github/workflows/pages.yml"
