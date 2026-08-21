@@ -918,6 +918,31 @@
   grid-template-columns: 1fr;
 }
 
+/* Hoehere Spezifitaet als ".flow-download span", sonst gewinnt dort das
+   flex: 1 1 320px und die Knopfreihe wird auseinandergezogen. */
+.flow-download .flow-download-buttons {
+  display: flex;
+  /* flex: none wuerde die Reihe auf ihre Summenbreite (rund 710 px) nageln und
+     unter 640 px die ganze Seite waagerecht ueberlaufen lassen. 0 1 auto plus
+     min-width: 0 laesst sie stattdessen umbrechen. */
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Das Methodik-PDF ist ein Link, sieht aber aus wie die beiden Knoepfe daneben. */
+.flow-download-buttons .flow-button {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.flow-download-buttons a.flow-button {
+  display: inline-flex;
+  align-items: center;
+}
+
 .flow-download {
   display: flex;
   flex-wrap: wrap;

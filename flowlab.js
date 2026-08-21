@@ -113,9 +113,12 @@
         "Der Regler stellt das <strong>Jahresmittel</strong>. Der Tageswert daneben ist " +
         "Jahresmittel × Jahresgang-Faktor des Kalendertags (siehe unten). " +
         "Startwert: 88 % des gemessenen Ist-Zuflusses. Der Anteil stammt aus den " +
-        "Importmengen 2024 — 865 TWh insgesamt, davon 68 TWh über deutsche " +
-        "LNG-Terminals. Der Rest kam per Pipeline, überwiegend aus Norwegen (48 %), " +
-        "den Niederlanden (25 %) und Belgien (18 %).",
+        "Importmengen 2024 — 865 TWh insgesamt, davon 69 TWh über deutsche " +
+        "LNG-Terminals. Der Rest kam per Pipeline. Größte Lieferländer waren " +
+        "Norwegen (48 %), die Niederlande (25 %) und Belgien (18 %); " +
+        "<strong>diese Anteile beziehen sich auf alle Importe, nicht nur auf die " +
+        "Pipeline-Mengen</strong> — über die Niederlande und Belgien fließt auch " +
+        "reexportiertes LNG.",
       maximum:
         "3.000 GWh/Tag im Jahresmittel. 2024 lagen die Pipeline-Importe bei rund " +
         "2.180 GWh/Tag. Höher käme man nur bei durchgehender Vollauslastung der " +
@@ -128,14 +131,17 @@
       titel: "LNG-Terminals",
       aktuell:
         "Der Regler stellt das <strong>Jahresmittel</strong>; der Tageswert folgt dem " +
-        "Jahresgang. Startwert: 7,5 % des Ist-Zuflusses. 2024 kamen 68 TWh über die " +
-        "deutschen LNG-Terminals — 8 % aller Importe, im Jahresmittel rund 186 GWh/Tag.",
+        "Jahresgang. Startwert: 7,5 % des Ist-Zuflusses. 2024 kamen 69 TWh über die " +
+        "deutschen LNG-Terminals (Wilhelmshaven, Brunsbüttel, Lubmin, Mukran) — " +
+        "8 % aller Importe, im Jahresmittel rund 189 GWh/Tag.",
       maximum:
-        "400 GWh/Tag im Jahresmittel. Die drei betriebsbereiten Terminals der " +
-        "bundeseigenen DET — Wilhelmshaven 1 (4,8), Wilhelmshaven 2 (4,3) und " +
-        "Brunsbüttel (4,0 Mrd. m³/Jahr) — ergeben zusammen 13,1 Mrd. m³/Jahr, also " +
-        "etwa 380 GWh/Tag bei lückenloser Anlandung. 2024 wurde davon knapp die " +
-        "Hälfte genutzt. Stade und Mukran sind hier nicht eingerechnet.",
+        "400 GWh/Tag im Jahresmittel. Die drei Terminals der bundeseigenen DET — " +
+        "Wilhelmshaven 1 (4,8), Wilhelmshaven 2 (4,3) und Brunsbüttel " +
+        "(4,0 Mrd. m³/Jahr) — ergeben zusammen 13,1 Mrd. m³/Jahr, also etwa " +
+        "380 GWh/Tag bei lückenloser Anlandung. DET nennt diese Werte als " +
+        "<strong>„bis zu“-Nennkapazität</strong>, nicht als Durchsatz; 2024 wurde " +
+        "davon knapp die Hälfte genutzt. Stade und Mukran sind hier nicht " +
+        "eingerechnet.",
       quellen: [
         ["Bundesnetzagentur, Gasversorgung 2024", "https://www.bundesnetzagentur.de/DE/Gasversorgung/a_Gasversorgung_2024/start.html"],
         ["Deutsche Energy Terminal, Terminals", "https://energy-terminal.de/en/terminals"],
@@ -192,11 +198,14 @@
         "<strong>Kein Regler — gemessener Tageswert.</strong> Angezeigt ist der " +
         "SLP-Wert des gleichen Kalendertags im gewählten Referenz-Gasjahr, unverändert " +
         "aus den Allokationsdaten von Trading Hub Europe übernommen. SLP steht für " +
-        "Standardlastprofil-Kunden — Haushalte und kleines Gewerbe. Über fünf Gasjahre " +
-        "sind das 40,0 % des Verbrauchs; die Bundesnetzagentur weist für 2024 39 % aus.",
+        "Standardlastprofil-Kunden — Haushalte und kleines Gewerbe. Im Kalenderjahr 2024 " +
+        "sind das gemessen 39,1 % des Verbrauchs — die Bundesnetzagentur weist für " +
+        "dasselbe Jahr 39 % aus. Über alle fünf Gasjahre liegt der Anteil bei 41,2 %, " +
+        "weil er 2021/22 und 2022/23 noch bei 43,3 % lag (Industrie-Einbruch der " +
+        "Gaskrise, nicht mehr Heizen).",
       maximum:
-        "Gemessen schwankt SLP zwischen Index 0,22 im August und 2,18 im Januar — " +
-        "Faktor zehn zwischen Sommer und Winter. Ein härterer Winter lässt sich nur " +
+        "Gemessen schwankt SLP zwischen Monatsindex 0,22 im Juli und August und 2,06 im " +
+        "Januar — Faktor neun zwischen Sommer und Winter; als Tageswerte 0,13 bis 2,81. Ein härterer Winter lässt sich nur " +
         "über die Wahl eines kälteren Referenz-Gasjahres nachstellen, nicht über einen " +
         "Regler; die Messreihe bleibt damit unangetastet.",
       quellen: [
@@ -243,16 +252,20 @@
         "Winter würde.",
       maximum:
         "<strong>Vorsicht mit den 80 % als Rechtsvorgabe.</strong> Die deutsche " +
-        "Gasspeicherfüllstandsverordnung vom 05.05.2025 schreibt 80 % für Kavernenspeicher " +
-        "und vier süddeutsche Porenspeicher vor, aber nur 45 % für alle übrigen " +
-        "Porenspeicher. Der VKU rechnet daraus einen deutschen Gesamtdurchschnitt von rund " +
-        "70 %. Die EU-Verordnung nennt 90 % zum Beginn der Heizperiode, lässt aber " +
-        "Abweichungen von bis zu etwa 25 Prozentpunkten zu. Die 80 %-Linie in dieser Grafik " +
-        "ist deshalb eine <strong>Bezugsmarke, kein auf den Gesamtfüllstand anwendbarer " +
-        "Grenzwert</strong>.",
+        "Gasspeicherfüllstandsverordnung vom 05.05.2025 schreibt zum 1. November 80 % für " +
+        "Kavernenspeicher und für vier süddeutsche Porenspeicher (Bierwang, Breitbrunn, " +
+        "Inzenham-West, Wolfersberg) vor, aber nur 45 % für alle übrigen Porenspeicher. " +
+        "Der VKU rechnet daraus einen deutschen Gesamtdurchschnitt von rund 70 %. " +
+        "Die EU-Verordnung 2025/1733 vom 18.07.2025 nennt 90 %, aber nicht zu einem festen " +
+        "Stichtag, sondern <strong>zu einem beliebigen Zeitpunkt zwischen dem 1. Oktober " +
+        "und dem 1. Dezember</strong>, und lässt Abweichungen von <strong>zusammen bis zu " +
+        "20 Prozentpunkten</strong> zu (10 bei erschwerten Befüllbedingungen, je 5 weitere " +
+        "unter zusätzlichen Voraussetzungen). Die 80 %-Linie in dieser Grafik ist deshalb " +
+        "eine <strong>Bezugsmarke, kein auf den Gesamtfüllstand anwendbarer Grenzwert</strong>.",
       quellen: [
         ["VKU zu den Füllstandszielen nach EU-Trilog", "https://www.vku.de/themen/energiewende/artikel/nach-eu-trilog-die-fuellstandsziele-der-deutschen-gasspeicherfuellstandsverordnung-bleiben/"],
-        ["stadt+werk: Neue Vorgaben für Gasspeicher", "https://www.stadt-und-werk.de/k21-meldungen/neue-vorgaben-fuer-gasspeicher/"],
+        ["BMWK: Füllstandsvorgaben für Gasspeicheranlagen (30.04.2025)", "https://www.bundeswirtschaftsministerium.de/Redaktion/DE/Pressemitteilungen/2025/20250430-Fuellstandsvorgaben-fuer-Gasspeicheranlagen.html"],
+        ["Verordnung (EU) 2025/1733", "https://eur-lex.europa.eu/eli/reg/2025/1733/oj"],
       ],
     },
     refyear: {
@@ -260,10 +273,11 @@
       aktuell:
         "Der Tagesverbrauch stammt aus den aggregierten Allokationsdaten von " +
         "Trading Hub Europe für das deutsche Marktgebiet — je Gastag, getrennt nach " +
-        "SLP (Haushalte und Gewerbe) und RLM (Industrie und Kraftwerke). Über fünf " +
-        "Gasjahre liegt das Verhältnis bei 40,0 % zu 60,0 % und bestätigt damit " +
-        "unabhängig die 39 % zu 61 % der Bundesnetzagentur. Die Auswahl tauscht die " +
-        "komplette Tagesreihe der Entnahme aus — nichts wird skaliert.",
+        "SLP (Haushalte und Gewerbe) und RLM (Industrie und Kraftwerke). Für das " +
+        "Kalenderjahr 2024 ergibt die Reihe 838,3 TWh Verbrauch bei 39,1 % SLP-Anteil; " +
+        "die Bundesnetzagentur nennt für dasselbe Jahr 844 TWh und 39 % — zwei " +
+        "unabhängige Wege, 0,7 % Abstand. Die Auswahl tauscht die komplette Tagesreihe " +
+        "der Entnahme aus — nichts wird skaliert.",
       maximum:
         "Zur Auswahl stehen die Gasjahre, für die Messwerte vorliegen. " +
         "<strong>Ein Winter unterhalb der DWD-Norm von +1,4 °C ist nicht darunter</strong> — " +
@@ -700,14 +714,19 @@
     label.textContent = `linear ≈${nf1.format(state.linearTarget)}%`;
   }
 
-  /** Zweite Kurve: derselbe Bedarf, aber Zufluss auf Zielniveau. */
+  /**
+   * Zweite Kurve: derselbe Bedarf, aber Zufluss auf Zielniveau.
+   * Endet am 1. November. Danach ist der Zielpfad nicht definiert — er wuerde
+   * nur zeigen, was ein Weiterpumpen auf Zielniveau im Winter anrichtet, und
+   * das hat mit dem Ziel nichts mehr zu tun.
+   */
   function renderTargetPath() {
     const pfad = el("flow-axis-goal");
     if (!pfad) return;
     const niveau = zielZufluss();
     let fill = state.startFill;
     let d = `M${axisX(0).toFixed(1)},${axisY(fill).toFixed(1)}`;
-    for (let index = 0; index < state.days; index += 1) {
+    for (let index = 0; index < state.targetIndex; index += 1) {
       const net = clamp(
         niveau * inflowFactor(index) - demandOn(index).total,
         -state.withdrawalCapacity,
@@ -807,16 +826,24 @@
     const value = el("flow-required-value");
     const detail = el("flow-required-detail");
     const required = requiredSupply(fills);
+    const kopf = el("flow-required-head");
+    const marke = '<i class="flow-key flow-key-in"></i>';
 
     const luecke0 = el("flow-required-gap");
     if (!required) {
       value.dataset.tone = "";
-      value.textContent = "—";
+      // Hinter dem Zieltag gibt es keinen "benoetigten Zufluss" mehr. Statt
+      // eines Gedankenstrichs unter einer stehengebliebenen Ueberschrift sagt
+      // die Kachel dann, was tatsaechlich gilt.
+      if (kopf) kopf.innerHTML = `${marke}Nach dem 1. November`;
+      value.textContent = "Winterentnahme";
       if (luecke0) { luecke0.textContent = ""; luecke0.dataset.tone = ""; }
       detail.textContent =
-        "Das Einspeicherfenster ist geschlossen; ab hier zählt die Winterentnahme.";
+        "Das Einspeicherfenster ist geschlossen; ab hier zählt, wie weit die " +
+        "gemessene Entnahme des Referenzjahres den Speicher leert.";
       return;
     }
+    if (kopf) kopf.innerHTML = `${marke}Benötigter täglicher Zufluss bis 80% am 1. November`;
     if (required.met) {
       value.dataset.tone = "ok";
       value.textContent = "Ziel erreicht";
@@ -839,11 +866,17 @@
         ? `Lücke ${gwh(gap)}`
         : `Überschuss ${gwh(-gap)}`;
     }
+    // Die Tageszahl ist die Restlaufzeit ab dem eingestellten Tag, nicht die
+    // Fensterlaenge — sonst steht am 27. Oktober immer noch "75 Tage".
+    const restTage = Math.max(1, state.targetIndex - state.day);
     detail.textContent =
-      `Ø über die 75 Tage bis zum Ziel, entspricht +${nf2.format(required.pp)} pp/Tag · ` +
+      `Ø über ${restTage === 1 ? "den letzten Tag" : `die ${nf0.format(restTage)} Tage`} bis zum Ziel, ` +
+      `entspricht +${nf2.format(required.pp)} pp/Tag · ` +
       `eingestellt: ${nf0.format(Math.round(current))} GWh/Tag im selben Zeitraum · ` +
       `nötiges Jahresniveau ${nf0.format(Math.round(required.niveau))} GWh/Tag, ` +
-      `weil das Einspeicherfenster im Zufluss-Tal liegt (Faktor ${nf2.format(required.faktor)})` +
+      // Ab Ende Oktober steigt der Jahresgang ueber 1 — dann ist "Tal" falsch.
+      `weil das Restfenster ${required.faktor < 1 ? "im Zufluss-Tal" : "über dem Jahresmittel"} ` +
+      `liegt (Faktor ${nf2.format(required.faktor)})` +
       (required.feasible ? "" : " · über der technischen Einspeicherkapazität");
   }
 
@@ -991,11 +1024,11 @@
    * Der Kommentarkopf haelt alle Annahmen und Quellen fest, damit die Datei
    * ohne diese Seite pruefbar bleibt.
    */
-  function buildCsv() {
+  /** Kopfzeilen, die fuer jede Ausgabe gelten. */
+  function csvKopf(titel, extra) {
     const zufluss = supplyTotal();
-    const ziel = zielZufluss();
-    const kopf = [
-      "# Flussbilanz-Labor — Tagestabelle der Simulation",
+    return [
+      `# ${titel}`,
       `# erzeugt am: ${dateText(isoDate(new Date()))}`,
       `# Datenstand GIE AGSI+: ${state.startDate}, Fuellstand ${state.startFill} %`,
       `# Arbeitsgasvolumen: ${(state.ppGwh * 100) / 1000} TWh, 1 Prozentpunkt = ${state.ppGwh.toFixed(2)} GWh`,
@@ -1004,18 +1037,13 @@
         `de_storage_capacity.json — bewusst konservativ)`,
       `# Ausspeicherkapazitaet: ${state.withdrawalCapacity} GWh/Tag`,
       `# gemessenes 30-Tage-Tempo: ${state.measuredRate.toFixed(4)} pp/Tag`,
-      `# Referenz-Gasjahr fuer den Verbrauch: ${state.refYear}/${String(state.refYear + 1).slice(2)}`,
       `# Jahresgang des Zuflusses aus Gasjahren: ` +
         `${state.inflowYears.map((j) => `${j}/${String(j + 1).slice(2)}`).join(", ") || "keiner"}` +
         ` (geglaettet ueber ${2 * INFLOW_SMOOTH_DAYS + 1} Tage, Jahresmittel 1)`,
       `# eingestelltes Zufluss-Jahresmittel: ${zufluss.toFixed(1)} GWh/Tag ` +
         `(Pipeline ${state.supply.pipeline.toFixed(1)}, LNG ${state.supply.lng.toFixed(1)}, ` +
         `Inland ${state.supply.domestic.toFixed(1)})`,
-      `# Zielpfad: ${zielSchnitt().toFixed(1)} GWh/Tag im Schnitt bis ${state.targetDate}` +
-        `, entspricht einem Jahresmittel von ${ziel.toFixed(1)} GWh/Tag`,
-      `# gemessene Jahresmittel des Referenzjahres (Entnahme, nicht einstellbar): ` +
-        `Haushalte ${state.base.households.toFixed(1)}, Industrie ${state.base.industry.toFixed(1)}, ` +
-        `Strom ${state.base.power.toFixed(1)} GWh/Tag`,
+      ...extra,
       "#",
       "# Rechenweg je Tag:",
       "#   bedarf_haushalte = SLP(Kalendertag im Referenzjahr)          [unveraendert gemessen]",
@@ -1024,6 +1052,8 @@
       "#   zufluss = zufluss_jahresmittel x jahresgang(Kalendertag)",
       "#   netto  = min(Einspeicherkap., max(-Ausspeicherkap., zufluss - bedarf))",
       "#   fuellstand(t+1) = fuellstand(t) + netto / GWh-je-Prozentpunkt, gedeckelt 0..100",
+      "#   zielpfad_fuellstand_pct steht nur bis zum Zieltag; danach ist der",
+      "#   Zielpfad nicht definiert und die Spalte bleibt leer.",
       "#",
       "# Quellen:",
       "#   Verbrauch: Trading Hub Europe, AggregatedConsumptionData (SLP + RLM)",
@@ -1037,28 +1067,47 @@
       "#",
       "# Annahme, die keine Messung ist: die Trennung 70/30 zwischen Industrie und",
       "# Stromerzeugung. THE misst beide gemeinsam als RLM.",
+      "# Vollstaendige Herleitung und Pruefung der Datenbasis: METHODIK.pdf im Repository.",
     ].join("\n");
+  }
 
-    const spalten = [
-      "datum", "tag", "referenztag",
-      "bedarf_haushalte_gwh", "bedarf_industrie_gwh", "bedarf_strom_gwh", "bedarf_gesamt_gwh",
-      "zufluss_jahresgang", "zufluss_gwh", "netto_gwh", "fuellstand_pct", "zielpfad_fuellstand_pct",
-    ].join(",");
+  const CSV_SPALTEN = [
+    "referenzjahr", "datum", "tag", "referenztag",
+    "bedarf_haushalte_gwh", "bedarf_industrie_gwh", "bedarf_strom_gwh", "bedarf_gesamt_gwh",
+    "zufluss_jahresgang", "zufluss_gwh", "netto_gwh", "fuellstand_pct", "zielpfad_fuellstand_pct",
+  ].join(",");
 
+  /**
+   * Tageszeilen fuer ein Referenzjahr. Rechnet unabhaengig von state.fills,
+   * damit dieselbe Funktion auch fuer die anderen Jahre laufen kann.
+   * Der Zufluss bleibt dabei, wie er eingestellt ist — so ist der Unterschied
+   * zwischen den Jahren allein der gemessene Verbrauch.
+   */
+  function csvZeilen(refJahr) {
+    const merk = state.refYear;
+    state.refYear = refJahr;
+    const label = `${refJahr}/${String(refJahr + 1).slice(2)}`;
+    const ziel = zielZufluss();
     const zeilen = [];
+    let fill = state.startFill;
     let zielFill = state.startFill;
     for (let index = 0; index <= state.days; index += 1) {
       const bedarf = demandOn(index);
       const netto = index < state.days ? netOn(index) : 0;
       if (index > 0) {
-        const zielNetto = clamp(
-          ziel * inflowFactor(index - 1) - demandOn(index - 1).total,
-          -state.withdrawalCapacity,
-          state.injectionCapacity,
-        );
-        zielFill = clamp(zielFill + zielNetto / state.ppGwh, 0, 100);
+        if (index <= state.targetIndex) {
+          const zielNetto = clamp(
+            ziel * inflowFactor(index - 1) - demandOn(index - 1).total,
+            -state.withdrawalCapacity,
+            state.injectionCapacity,
+          );
+          zielFill = clamp(zielFill + zielNetto / state.ppGwh, 0, 100);
+        }
+        const vorher = clamp(netOn(index - 1), -state.withdrawalCapacity, state.injectionCapacity);
+        fill = clamp(fill + vorher / state.ppGwh, 0, 100);
       }
       zeilen.push([
+        label,
         dayIso(index),
         index,
         monthDay(dayDate(index)),
@@ -1069,23 +1118,81 @@
         inflowFactor(index).toFixed(4),
         supplyOn(index).toFixed(1),
         netto.toFixed(1),
-        state.fills[index].toFixed(3),
-        zielFill.toFixed(3),
+        fill.toFixed(3),
+        index <= state.targetIndex ? zielFill.toFixed(3) : "",
       ].join(","));
     }
-    return `${kopf}\n${spalten}\n${zeilen.join("\n")}\n`;
+    state.refYear = merk;
+    return zeilen;
   }
 
-  function ladeCsvHerunter() {
-    const blob = new Blob([buildCsv()], { type: "text/csv;charset=utf-8" });
+  /** Der laufende Durchgang: nur das gewaehlte Referenzjahr. */
+  function buildCsv() {
+    const kopf = csvKopf("Flussbilanz-Labor — Tagestabelle der Simulation", [
+      `# Referenz-Gasjahr fuer den Verbrauch: ${state.refYear}/${String(state.refYear + 1).slice(2)}`,
+      `# Zielpfad: ${zielSchnitt().toFixed(1)} GWh/Tag im Schnitt bis ${state.targetDate}` +
+        `, entspricht einem Jahresmittel von ${zielZufluss().toFixed(1)} GWh/Tag`,
+      `# gemessene Jahresmittel des Referenzjahres (Entnahme, nicht einstellbar): ` +
+        `Haushalte ${state.base.households.toFixed(1)}, Industrie ${state.base.industry.toFixed(1)}, ` +
+        `Strom ${state.base.power.toFixed(1)} GWh/Tag`,
+    ]);
+    return `${kopf}\n${CSV_SPALTEN}\n${csvZeilen(state.refYear).join("\n")}\n`;
+  }
+
+  /**
+   * Gesamtlauf: alle Referenzjahre untereinander, gleicher Zufluss.
+   * Damit laesst sich ausserhalb dieser Seite pruefen, wie stark das Ergebnis
+   * am gewaehlten Verbrauchsjahr haengt — der einzige Unterschied zwischen den
+   * Bloecken ist die gemessene Tagesreihe der Entnahme.
+   */
+  function buildCsvGesamt() {
+    const jahre = state.refYears.length ? state.refYears : [state.refYear];
+    const merk = state.refYear;
+    const bilanz = jahre.map((jahr) => {
+      state.refYear = jahr;
+      const tag0 = demandOn(0).total + state.measuredRate * state.ppGwh;
+      const zeile =
+        `#   ${jahr}/${String(jahr + 1).slice(2)}: Winter ${DWD_WINTER[jahr + 1] !== undefined ? `${DWD_WINTER[jahr + 1]} °C` : "unbekannt"}` +
+        `, Ist-Zufluss am Datenstand ${tag0.toFixed(0)} GWh/Tag` +
+        `, noetiger Tagesschnitt bis zum Ziel ${zielSchnitt().toFixed(0)} GWh/Tag`;
+      return zeile;
+    });
+    state.refYear = merk;
+
+    const kopf = csvKopf("Flussbilanz-Labor — Gesamtlauf ueber alle Referenzjahre", [
+      `# Referenz-Gasjahre in dieser Datei: ` +
+        `${jahre.map((j) => `${j}/${String(j + 1).slice(2)}`).join(", ")}`,
+      "# Spalte zufluss_gwh ist in allen Bloecken dieselbe (siehe oben). Der einzige",
+      "# Unterschied zwischen den Jahren ist die gemessene Tagesreihe der Entnahme.",
+      "# Die Spalte zielpfad_fuellstand_pct rechnet dagegen je Jahr mit dem Zufluss,",
+      "# den GERADE DIESES Jahr fuer 80 % braeuchte — sie endet deshalb in jedem",
+      "# Block bei 80,000 %. Die Spanne dieser noetigen Zufluesse steht unten.",
+      "#",
+      "# Je Referenzjahr:",
+      ...bilanz,
+    ]);
+    const zeilen = jahre.flatMap((jahr) => csvZeilen(jahr));
+    return `${kopf}\n${CSV_SPALTEN}\n${zeilen.join("\n")}\n`;
+  }
+
+  function speichereCsv(text, name) {
+    const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `flussbilanz_${state.startDate}_gasjahr${state.refYear}.csv`;
+    link.download = name;
     document.body.append(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function ladeCsvHerunter() {
+    speichereCsv(buildCsv(), `flussbilanz_${state.startDate}_gasjahr${state.refYear}.csv`);
+  }
+
+  function ladeGesamtCsvHerunter() {
+    speichereCsv(buildCsvGesamt(), `flussbilanz_${state.startDate}_gesamtlauf.csv`);
   }
 
   /* ---------------------------------------------------------------- Interaktion */
@@ -1167,7 +1274,11 @@
         stopPlayback();
         state.refYear = Number(chip.dataset.refyear);
         seedFromData();
+        // Der Horizont haengt am Datenstand, nicht am Referenzjahr — der Tag
+        // sollte also passen. Geklemmt wird trotzdem.
+        state.day = clamp(state.day, 0, state.days);
         applySliderPositions();
+        uebernehmeReglerwerte();
         update();
       }
     });
@@ -1184,8 +1295,10 @@
 
     el("flow-play")?.addEventListener("click", togglePlayback);
     el("flow-csv")?.addEventListener("click", ladeCsvHerunter);
+    el("flow-csv-all")?.addEventListener("click", ladeGesamtCsvHerunter);
     el("flow-reset")?.addEventListener("click", () => {
       stopPlayback();
+      state.day = 0;
       seedFromData();
       applySliderPositions();
       // Die Regler rasten auf ihre Schrittweite. Ohne diesen Rueckweg stuende im
@@ -1334,7 +1447,9 @@
       };
     }
     state.demand = { ...state.base };
-    state.day = 0;
+    // Der Simulationstag bleibt, wo er ist — wer beim 1. Dezember steht und das
+    // Referenzjahr wechselt, will genau diesen Tag vergleichen. Wer von vorn
+    // anfangen will, nimmt "Zuruecksetzen".
     // Gemessener Ist-Zufluss am Datenstand: Bedarf plus 30-Tage-Einspeichertempo.
     // Geteilt durch den Jahresgang-Faktor dieses Tages ergibt das Jahresniveau,
     // das die Regler stellen.
@@ -1392,15 +1507,6 @@
   function zielZufluss() {
     const faktor = fensterFaktor();
     return faktor > 0 ? zielSchnitt() / faktor : zielSchnitt();
-  }
-
-  /** Zufluss auf das Jahresniveau heben, das bis zum 1. November 80 % traegt. */
-  function applyRequiredSupply() {
-    const merk = state.day;
-    state.day = 0;
-    const required = requiredSupply(simulate());
-    state.day = merk;
-    if (required && !required.met) verteileZufluss(required.niveau);
   }
 
   /** Beschreibt das gewaehlte Referenzjahr unter der Knopfleiste. */
@@ -1683,16 +1789,24 @@
       </div>
 
       <p class="flow-download">
-        <button id="flow-csv" class="flow-button flow-button-ghost" type="button">↓ Tagestabelle als CSV</button>
-        <span>Jeder Simulationstag mit Bedarf je Sektor, Zufluss, Netto-Bilanz, Füllstand und
-          Zielpfad. Im Dateikopf stehen alle Parameter, der Rechenweg und die Quellen —
-          damit Dritte die Annahmen ohne diese Seite nachprüfen können.</span>
+        <span class="flow-download-buttons">
+          <button id="flow-csv" class="flow-button flow-button-ghost" type="button">↓ Tagestabelle als CSV</button>
+          <button id="flow-csv-all" class="flow-button flow-button-ghost" type="button">↓ Gesamtlauf (alle Jahre)</button>
+          <a id="flow-methodik" class="flow-button flow-button-ghost" href="METHODIK.pdf"
+             target="_blank" rel="noreferrer">↓ Methodik &amp; Quellen (PDF)</a>
+        </span>
+        <span>Die <strong>Tagestabelle</strong> enthält jeden Simulationstag des gewählten
+          Referenzjahres mit Bedarf je Sektor, Zufluss, Netto-Bilanz, Füllstand und Zielpfad.
+          Der <strong>Gesamtlauf</strong> stellt alle Referenzjahre bei identischem Zufluss
+          untereinander — so sieht man, wie stark das Ergebnis am Verbrauchsjahr hängt.
+          Im Dateikopf stehen alle Parameter, der Rechenweg und die Quellen. Das
+          <strong>Methodik-PDF</strong> belegt Herkunft, Prüfung und Grenzen jeder Zahl.</span>
       </p>
     </div>
 
     <div class="flow-foot flow-foot-single">
       <div class="flow-required">
-        <span><i class="flow-key flow-key-in"></i>Benötigter täglicher Zufluss bis 80% am 1. November</span>
+        <span id="flow-required-head"><i class="flow-key flow-key-in"></i>Benötigter täglicher Zufluss bis 80% am 1. November</span>
         <p class="flow-required-row">
           <strong id="flow-required-value">--</strong>
           <strong id="flow-required-gap" class="flow-required-gap">--</strong>
