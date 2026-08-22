@@ -869,10 +869,25 @@
     // Die Tageszahl ist die Restlaufzeit ab dem eingestellten Tag, nicht die
     // Fensterlaenge — sonst steht am 27. Oktober immer noch "75 Tage".
     const restTage = Math.max(1, state.targetIndex - state.day);
+
+    // Die grosse Zahl daneben ist ein TAGESWERT. Das Wort "Luecke" legt aber
+    // die Gesamtmenge nahe, und die ist die Zahl, die man zitiert. Deshalb
+    // steht hier beides: Tagesluecke x Resttage = fehlende Arbeitsgasmenge,
+    // umgerechnet in Prozentpunkte Fuellstand.
+    const summe = Math.abs(gap) * restTage;
+    const summePp = state.ppGwh > 0 ? summe / state.ppGwh : 0;
+    const summeText = summe >= 1000
+      ? `${nf1.format(summe / 1000)} TWh`
+      : `${nf0.format(Math.round(summe))} GWh`;
+    const bilanz = gap > 0
+      ? `zusammen fehlen ${summeText}, das sind ${nf1.format(summePp)} Prozentpunkte Füllstand`
+      : `zusammen ${summeText} Überschuss, das sind ${nf1.format(summePp)} Prozentpunkte Füllstand`;
+
     detail.textContent =
       `Ø über ${restTage === 1 ? "den letzten Tag" : `die ${nf0.format(restTage)} Tage`} bis zum Ziel, ` +
       `entspricht +${nf2.format(required.pp)} pp/Tag · ` +
       `eingestellt: ${nf0.format(Math.round(current))} GWh/Tag im selben Zeitraum · ` +
+      `${bilanz} · ` +
       `nötiges Jahresniveau ${nf0.format(Math.round(required.niveau))} GWh/Tag, ` +
       // Ab Ende Oktober steigt der Jahresgang ueber 1 — dann ist "Tal" falsch.
       `weil das Restfenster ${required.faktor < 1 ? "im Zufluss-Tal" : "über dem Jahresmittel"} ` +
