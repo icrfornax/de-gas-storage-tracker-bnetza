@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -46,24 +46,77 @@ jobs:
           GIE_API_KEY: ${{ secrets.GIE_API_KEY }}
         run: python scripts/update_gie_storage.py
 
+      # Die BNetzA liefert ihren CSV-Export unzuverlaessig: gelegentlich kommt
+      # statt der Datei eine HTML-Fehlerseite zurueck, an der pandas scheitert.
+      # Das darf die frisch geholten GIE-Daten nicht mit in den Abgrund reissen,
+      # deshalb ist dieser Schritt nicht blockierend. Gemeldet wird der
+      # Fehlschlag trotzdem — ganz am Ende, nachdem die Daten gesichert sind.
       - name: Run projection script
+        id: projektion
+        continue-on-error: true
         run: python scripts/2026_gasspeicher_deutschland.py
+
+      # Das Projektionsskript schreibt den Download in den Cache, BEVOR es ihn
+      # parst. Eine Fehlerseite steht danach in data/bnetza_cache.csv. Ungeprueft
+      # committet wuerde sie jeden kuenftigen Lauf vergiften, denn der
+      # Netzwerk-Fallback liest genau diese Datei.
+      - name: Cache auf Plausibilitaet pruefen
+        run: |
+          set -uo pipefail
+          DATEI=data/bnetza_cache.csv
+          if [ ! -s "$DATEI" ]; then
+            echo "::warning::$DATEI ist leer — stelle den letzten guten Stand wieder her."
+            git checkout -- "$DATEI" || true
+          elif head -c 400 "$DATEI" | grep -qiE '<html|<!doctype|HTTP Status'; then
+            echo "::warning::$DATEI enthaelt HTML statt CSV (vermutlich eine Fehlerseite der Quelle) — stelle den letzten guten Stand wieder her."
+            git checkout -- "$DATEI" || true
+          elif ! head -n 1 "$DATEI" | grep -q ';'; then
+            echo "::warning::$DATEI hat keine Semikolon-Spalten — stelle den letzten guten Stand wieder her."
+            git checkout -- "$DATEI" || true
+          else
+            echo "Cache sieht wie CSV aus: $(wc -l < "$DATEI") Zeilen, letzter Tag $(tail -n 1 "$DATEI" | cut -d';' -f1)."
+          fi
 
       - name: Validate static dashboard
         run: python scripts/validate_dashboard.py
 
       - name: Commit data updates
         run: |
+          set -euo pipefail
+
           git add data/bnetza_cache.csv data/projections.csv data/gie_storage.csv data/eu_storage.csv README.md
           if git diff --cached --quiet; then
-            echo "No changes detected."
+            echo "Keine Aenderungen — nichts zu committen."
             exit 0
           fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(data): update gasspeicher projections ($(date -u +%F))"
+
           BRANCH="${GITHUB_REF#refs/heads/}"
-          git push origin "HEAD:${BRANCH}"
+
+          # Zwischen Checkout und Push koennen Commits auf dem Branch gelandet
+          # sein — etwa ein Upload ueber die Weboberflaeche. Ein blosses
+          # "git push" wird dann mit "fetch first" abgelehnt und der Tageslauf
+          # geht verloren. Also: bei Ablehnung neu aufsetzen und erneut
+          # versuchen. Kein --force: lieber ein sichtbarer Fehlschlag als
+          # ueberschriebene Arbeit.
+          for versuch in 1 2 3; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Push erfolgreich (Versuch ${versuch})."
+              exit 0
+            fi
+            echo "Push abgelehnt (Versuch ${versuch}). Hole ${BRANCH} und setze neu auf."
+            if ! git pull --rebase origin "${BRANCH}"; then
+              git rebase --abort || true
+              echo "::error::Rebase auf ${BRANCH} fehlgeschlagen. Bitte von Hand nachziehen." >&2
+              exit 1
+            fi
+          done
+
+          echo "::error::Push nach drei Versuchen fehlgeschlagen." >&2
+          exit 1
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -78,3 +131,12 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # Zuletzt, damit die Daten gesichert und die Seite aktualisiert sind:
+      # der Lauf faellt trotzdem rot aus, wenn die Projektion nicht lief.
+      # Ein gruener Haken auf stillstehenden Daten waere schlimmer als die Mail.
+      - name: Fehlgeschlagene Projektion melden
+        if: steps.projektion.outcome == 'failure'
+        run: |
+          echo "::error::Das Projektionsskript ist gescheitert — vermutlich hat der BNetzA-CSV-Export wieder eine Fehlerseite geliefert. GIE-Daten, Validierung und Deploy sind trotzdem durchgelaufen; die BNetzA-Projektion bleibt auf dem letzten Stand."
+          exit 1
