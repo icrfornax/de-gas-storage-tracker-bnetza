@@ -1861,4 +1861,5 @@ date,consumption_gwh,slp_gwh,rlm_gwh,status,source
 2026-09-03,1275.396,228.649,1046.747,preliminary,Trading Hub Europe AggregatedConsumptionData
 2026-09-04,1154.312,210.981,943.332,preliminary,Trading Hub Europe AggregatedConsumptionData
 2026-09-05,1061.323,226.031,835.292,preliminary,Trading Hub Europe AggregatedConsumptionData
-2026-09-06,241.586,241.586,0.000,preliminary,Trading Hub Europe AggregatedConsumptionData
+2026-09-06,1075.938,241.586,834.352,preliminary,Trading Hub Europe AggregatedConsumptionData
+2026-09-07,220.469,220.469,0.000,preliminary,Trading Hub Europe AggregatedConsumptionData
