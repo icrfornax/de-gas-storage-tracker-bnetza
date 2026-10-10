@@ -32,8 +32,8 @@ python -m http.server 8765
 Stand aus `data/projections.csv`, letzter Lauf:
 
 ```text
-Projektion #Gasspeicher DE vom 2026-10-09
-Fuellstand 59.44% am 2026-10-07
+Projektion #Gasspeicher DE vom 2026-10-10
+Fuellstand 59.64% am 2026-10-08
 Kritisches Minimum 20% (Entnahmerate bricht stark ein)
 
 Szenarien - Minimum wird erreicht am:
@@ -48,7 +48,7 @@ Kleinste Entnahme
 
 nicht erreicht (nicht-negative Rate)
 Durchschnittliche Entnahme
-(0.155667%/Tag)
+(0.154667%/Tag)
 
 nicht erreicht (nicht-negative Rate)
 Groesste Entnahme
